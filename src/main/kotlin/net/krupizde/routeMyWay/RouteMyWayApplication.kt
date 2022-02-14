@@ -1,4 +1,4 @@
-package net.krupizde.RouteMyWay
+package net.krupizde.routeMyWay
 
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication

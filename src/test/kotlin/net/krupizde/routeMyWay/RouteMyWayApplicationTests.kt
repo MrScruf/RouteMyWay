@@ -1,4 +1,4 @@
-package net.krupizde.RouteMyWay
+package net.krupizde.routeMyWay
 
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest

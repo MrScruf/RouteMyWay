@@ -29,9 +29,10 @@ dependencies {
 	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
 	implementation("com.github.doyaaaaaken:kotlin-csv-jvm:1.2.0")
 	developmentOnly("org.springframework.boot:spring-boot-devtools")
+	implementation("org.flywaydb:flyway-core:8.4.4")
 	//runtimeOnly("org.postgresql:postgresql")
 	// https://mvnrepository.com/artifact/com.h2database/h2
-	runtimeOnly("com.h2database:h2:1.3.148")
+	implementation("com.h2database:h2:2.1.210")
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("io.projectreactor:reactor-test")
 	testImplementation("org.springframework.restdocs:spring-restdocs-mockmvc")

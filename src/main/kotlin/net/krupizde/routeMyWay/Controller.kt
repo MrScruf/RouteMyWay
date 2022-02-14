@@ -1,4 +1,4 @@
-package net.krupizde.RouteMyWay
+package net.krupizde.routeMyWay
 
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
@@ -13,7 +13,7 @@ class Controller(val gtfs: Gtfs) {
 
     @PostMapping("")
     fun loadGtfs(@RequestParam("file") file: MultipartFile): ResponseEntity<*>{
-        gtfs.load(file.inputStream);
+        gtfs.loadGtfsData(file.inputStream);
         return ResponseEntity.ok("Jdu");
     }
 }
