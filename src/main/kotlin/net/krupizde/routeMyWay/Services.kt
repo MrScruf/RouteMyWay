@@ -1,34 +1,47 @@
 package net.krupizde.routeMyWay
 
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Service
 import javax.transaction.Transactional
 
-@Service
-class ConnectionsService(private val tripConnectionRepository: TripConnectionRepository) {
+abstract class GeneralService<Entity : Any, Id : Any,
+        Repository : GeneralRepository<Entity, Id, out JpaRepository<Entity, Id>>>() {
+    @Autowired
+    private lateinit var repository: Repository;
+
     @Transactional
-    fun save(connection: TripConnection) {
-        tripConnectionRepository.insert(connection)
+    open fun save(connection: Entity) {
+        repository.save(connection)
     }
 
-    fun saveAll(connections: List<TripConnection>) {
-
-    }
-
-    fun loadAll(): List<TripConnection> {
-        return tripConnectionRepository.selectAll()
-    }
-}
-@Service
-class StopService(private val stopRepository: StopRepository){
     @Transactional
-    fun save(stop: Stop) {
-        stopRepository.insert(stop)
+    open fun saveAll(connections: List<Entity>) {
+        repository.saveAll(connections)
     }
-}
-@Service
-class TripService(private val tripRepository: TripRepository){
+
     @Transactional
-    fun save(trip: Trip) {
-       tripRepository.insert(trip)
+    open fun deleteAll() {
+        repository.deleteAll()
+    }
+
+    @Transactional
+    open fun findAll(): List<Entity> {
+        return repository.findAll()
     }
 }
+
+@Service
+class TripConnectionsService() : GeneralService<TripConnection, Int, TripConnectionRepository>();
+
+@Service
+class StopService() : GeneralService<Stop, String, StopRepository>();
+
+@Service
+class TripService() : GeneralService<Trip, String, TripRepository>();
+
+@Service
+class FootConnectionsService() : GeneralService<FootConnection, FootConnectionId, FootConnectionRepository>();
+
+@Service
+class LocationTypeService() : GeneralService<LocationType, Int, LocationTypeRepository>();

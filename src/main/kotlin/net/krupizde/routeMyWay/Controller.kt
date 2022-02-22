@@ -1,19 +1,23 @@
 package net.krupizde.routeMyWay
 
 import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestParam
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
 
 @RestController
 @RequestMapping("")
-class Controller(val gtfs: Gtfs) {
+class Controller(val gtfs: Gtfs, val csa: CSA) {
 
-    @PostMapping("")
-    fun loadGtfs(@RequestParam("file") file: MultipartFile): ResponseEntity<*>{
+    @PostMapping("/load")
+    fun loadGtfs(@RequestParam("file") file: MultipartFile): ResponseEntity<*> {
         gtfs.loadGtfsData(file.inputStream);
         return ResponseEntity.ok("Jdu");
+    }
+
+    @GetMapping("/{idStart}/{idStop}")
+    fun test(@PathVariable idStart: String,@PathVariable idStop: String): ResponseEntity<*>{
+        val out = csa.findShortestPath(idStart, idStop, Time(10, 10, 0))
+        //println(out)
+        return ResponseEntity.ok(out)
     }
 }

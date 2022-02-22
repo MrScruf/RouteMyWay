@@ -18,7 +18,6 @@ repositories {
 
 dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
-	//implementation("org.springframework.boot:spring-boot-starter-security")
 	implementation("org.springframework.boot:spring-boot-starter-validation")
 	implementation("org.springframework.boot:spring-boot-starter-web")
 	implementation("org.springframework.boot:spring-boot-starter-webflux")
@@ -29,7 +28,7 @@ dependencies {
 	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
 	implementation("com.github.doyaaaaaken:kotlin-csv-jvm:1.2.0")
 	developmentOnly("org.springframework.boot:spring-boot-devtools")
-	implementation("org.flywaydb:flyway-core:8.4.4")
+	implementation("org.flywaydb:flyway-core:8.5.0")
 	//runtimeOnly("org.postgresql:postgresql")
 	// https://mvnrepository.com/artifact/com.h2database/h2
 	implementation("com.h2database:h2:2.1.210")
@@ -37,6 +36,7 @@ dependencies {
 	testImplementation("io.projectreactor:reactor-test")
 	testImplementation("org.springframework.restdocs:spring-restdocs-mockmvc")
 	testImplementation("org.springframework.security:spring-security-test")
+	runtimeOnly("ch.qos.logback:logback-classic");
 }
 
 tasks.withType<KotlinCompile> {

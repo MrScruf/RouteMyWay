@@ -1,67 +1,68 @@
 package net.krupizde.routeMyWay
 
+import java.io.Serializable
 import javax.persistence.*
+import kotlin.jvm.Transient
 
-interface Connection {
-    val departureStopId: String;
-    val arrivalStopId: String;
-    val departureTime: Time;
-    val arrivalTime: Time;
-};
-//TODO místo s entitami přímo pracovat pouze s jejich id, tohle je brutálně pomalé a nevyužiju to
 @Entity
 data class TripConnection(
-    override val departureStopId: String,
-    override val arrivalStopId: String,
+    val departureStopId: String,
+    val arrivalStopId: String,
     @Embedded
     @AttributeOverrides(
         AttributeOverride(name = "hours", column = Column(name = "departureTimeHour")),
         AttributeOverride(name = "minutes", column = Column(name = "departureTimeMinute")),
         AttributeOverride(name = "seconds", column = Column(name = "departureTimeSecond"))
     )
-    override val departureTime: Time,
+    val departureTime: Time,
     @Embedded
     @AttributeOverrides(
         AttributeOverride(name = "hours", column = Column(name = "arrivalTimeHour")),
         AttributeOverride(name = "minutes", column = Column(name = "arrivalTimeMinute")),
         AttributeOverride(name = "seconds", column = Column(name = "arrivalTimeSecond"))
     )
-    override val arrivalTime: Time,
+    val arrivalTime: Time,
     val tripId: String,
-    @Id val id: Int? = null
-) : Connection
+    @Id val tripConnectionId: Int = -1
+)
 
+@Entity
+
+@IdClass(FootConnectionId::class)
 data class FootConnection(
-    override val departureStopId: String,
-    override val arrivalStopId: String,
-    override val departureTime: Time,
-    override val arrivalTime: Time,
-) : Connection
+    @Id
+    val departureStopId: String = "",
+    @Id
+    val arrivalStopId: String = "",
+    @Column(name = "duration") val durationMinutes: Int = -1
+)
+
+data class FootConnectionId(
+    val departureStopId: String = "",
+    val arrivalStopId: String = ""
+) : Serializable;
 
 @Entity
 data class Trip(
     @Id val tripId: String,
     val serviceId: String,
     val routeId: String,
-    val tripHeadSign: String,
-    val tripShortName: String,
-    //val directionId: Int,
-    //val shapeId: String,
-    //val wheelChairAccessible: Int,
-    //val bikesAllowed: Int,
+    val tripHeadSign: String?,
+    val tripShortName: String?,
+    @Transient var reachable: Boolean = false
 );
 @Entity
 data class Stop(
     @Id val stopId: String,
-    val name: String,
-    val latitude: Double,
-    val longitude: Double,
-    //val zoneId: String,
-    //val stopUrl: String,
-    //val locationType: String,
-    //val parentStation: String,
-    //val wheelchairBoarding: Int
+    val name: String?,
+    val latitude: Double?,
+    val longitude: Double?,
+    val locationTypeId: Int?,
+    @Transient var shortestTime: Time = Time(Int.MAX_VALUE, Int.MAX_VALUE, Int.MAX_VALUE)
 );
+
+@Entity
+data class LocationType(@Id val locationTypeId: Int, val name: String)
 
 data class StopTime(
     val tripId: String,
@@ -73,9 +74,9 @@ data class StopTime(
 
 data class Route(
     val id: String,
-    val shortName: String,
-    val longName: String,
-    val routeType: Int
+    val shortName: String?,
+    val longName: String?,
+    val routeTypeId: Int
 );
 @Embeddable
 data class Time(var hours: Int, var minutes: Int, var seconds: Int) :
@@ -89,4 +90,21 @@ data class Time(var hours: Int, var minutes: Int, var seconds: Int) :
         if (this.seconds < other.seconds) return -1
         return 0
     }
+
+    operator fun plus(addTime: Time): Time {
+        val seconds = this.seconds + addTime.seconds
+        val minutes = this.minutes + addTime.minutes + (seconds / 60)
+        val hours = this.hours + addTime.hours + (minutes / 60)
+        return Time(hours % 60, minutes % 60, seconds % 60)
+    }
+
+    operator fun plus(addMins: Int): Time {
+        val minutes = this.minutes + addMins
+        val hours = this.hours + (minutes / 60)
+        return Time(hours % 60, minutes % 60, this.seconds)
+    }
 }
+
+data class PathTripConnection(val departureTime: Time, val arrivalTime: Time, val departureStop: Stop, val arrivalStop: Stop)
+data class PathFootConnection(val departureStop: Stop, val arrivalStop: Stop, val durationMinutes: Int)
+data class PathStep(val trip: Trip, val tripConnection: PathTripConnection, val footConnection: PathFootConnection)

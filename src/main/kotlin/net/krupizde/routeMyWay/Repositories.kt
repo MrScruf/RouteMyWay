@@ -1,20 +1,54 @@
 package net.krupizde.routeMyWay
 
-import org.hibernate.query.Query
-import org.hibernate.transform.ResultTransformer
-import org.hibernate.transform.Transformers
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.data.domain.Sort
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
 import javax.persistence.EntityManager
 import javax.persistence.PersistenceContext
-@Repository
-interface TripConnRep : JpaRepository<TripConnection, Int>{
 
+@Repository
+interface TripConnectionJpaRepository : JpaRepository<TripConnection, Int>;
+@Repository
+interface StopJpaRepository : JpaRepository<Stop, String>
+
+@Repository
+interface TripJpaRepository : JpaRepository<Trip, String>
+
+@Repository
+interface FootConnectionJpaRepository : JpaRepository<FootConnection, FootConnectionId>
+
+@Repository
+interface LocationTypeJpaRepository : JpaRepository<LocationType, Int>
+
+abstract class GeneralRepository<Entity : Any, Id : Any, Repository : JpaRepository<Entity, Id>>() {
+    @PersistenceContext
+    @Autowired
+    protected lateinit var entityManager: EntityManager;
+
+    @Autowired
+    protected lateinit var jpaRepository: Repository
+    open fun save(entity: Entity) {
+        jpaRepository.save(entity)
+    }
+
+    open fun deleteAll() {
+        jpaRepository.deleteAll()
+    }
+
+    open fun saveAll(entities: Collection<Entity>) {
+        jpaRepository.saveAll(entities)
+        jpaRepository.flush()
+    }
+
+    open fun findAll(): List<Entity> {
+        return jpaRepository.findAll()
+    }
 }
 
 @Repository
-class TripConnectionRepository(@PersistenceContext private val entityManager: EntityManager, private val tripConnRep: TripConnRep) {
-    fun insert(tripConnection: TripConnection) {
+class TripConnectionRepository() : GeneralRepository<TripConnection, Int, TripConnectionJpaRepository>() {
+    override fun save(tripConnection: TripConnection) {
         val query = entityManager.createNativeQuery(
             "INSERT INTO tripConnection (departureStopId,arrivalStopId,tripId,departureTimeHour," +
                     "departureTimeMinute,departureTimeSecond,arrivalTimeHour,arrivalTimeMinute,arrivalTimeSecond)" +
@@ -33,52 +67,26 @@ class TripConnectionRepository(@PersistenceContext private val entityManager: En
         query.executeUpdate()
     }
 
-    fun selectAll(): List<TripConnection> {
-        /*val query = entityManager.createNativeQuery("select depart.id as departId, depart.name as departName," +
-                " depart.latitude as departLat, depart.longitude as departLong," +
-                "arriv.id as arrivId, arriv.name as arrivName, arriv.latitude as arrivLat, arriv.longitude as arrivLong" +
-                ", trip.id as tripId, trip.routeId as tripRouteId, " +
-                "trip.serviceId as serviceId, trip.tripHeadSign as tripHeadSign, trip.tripShortName as tripShortName," +
-                " departureTimeHour, departureTimeMinute, departureTimeSecond," +
-                "arrivalTimeHour, arrivalTimeMinute, arrivalTimeSecond from tripConnection tripConn " +
-                "inner join stop depart on depart.id = tripConn.departureStopId " +
-                "inner join stop arriv on arriv.id = tripConn.arrivalStopId " +
-                "inner join trip on trip.id = tripConn.tripId").unwrap(Query::class.java).setResultTransformer(Transformers.ALIAS_TO_ENTITY_MAP)
-        *//*query.resultStream.map {
-            if(it !is Map<*, *>)throw IllegalStateException("")
-            return TripConnection()
-        }.toList()*/
-        return tripConnRep.findAll()
+    override fun findAll(): List<TripConnection> {
+        return jpaRepository.findAll(
+            Sort.by(
+                Sort.Direction.ASC,
+                "departureTime.hours",
+                "departureTime.minutes",
+                "departureTime.seconds"
+            )
+        )
     }
 }
 
 @Repository
-class StopRepository(@PersistenceContext private val entityManager: EntityManager) {
-    fun insert(stop: Stop) {
-        val query = entityManager.createNativeQuery(
-            "INSERT INTO stop (stopId,name,latitude,longitude)" +
-                    " VALUES (:id,:name,:latitude,:longitude)"
-        )
-        query.setParameter("id", stop.stopId)
-        query.setParameter("name", stop.name)
-        query.setParameter("latitude", stop.latitude)
-        query.setParameter("longitude", stop.longitude)
-        query.executeUpdate()
-    }
-}
+class StopRepository() : GeneralRepository<Stop, String, StopJpaRepository>();
 
 @Repository
-class TripRepository(@PersistenceContext private val entityManager: EntityManager) {
-    fun insert(trip: Trip) {
-        val query = entityManager.createNativeQuery(
-            "INSERT INTO trip (tripId,routeId,serviceId,tripHeadSign,tripShortName)" +
-                    " VALUES (:id,:routeId,:serviceId,:tripHeadSign,:tripShortName)"
-        )
-        query.setParameter("id", trip.tripId)
-        query.setParameter("routeId", trip.routeId)
-        query.setParameter("serviceId", trip.serviceId)
-        query.setParameter("tripHeadSign", trip.tripHeadSign)
-        query.setParameter("tripShortName", trip.tripShortName)
-        query.executeUpdate()
-    }
-}
+class TripRepository() : GeneralRepository<Trip, String, TripJpaRepository>();
+
+@Repository
+class FootConnectionRepository() : GeneralRepository<FootConnection, FootConnectionId, FootConnectionJpaRepository>();
+
+@Repository
+class LocationTypeRepository() : GeneralRepository<LocationType, Int, LocationTypeJpaRepository>();
