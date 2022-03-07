@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.io.InputStream
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.zip.ZipInputStream
 import javax.transaction.Transactional
 import kotlin.math.acos
@@ -20,7 +21,9 @@ class Gtfs(
     private val stopService: StopService,
     private val tripService: TripService,
     private val footTripConnectionsService: FootConnectionsService,
+    private val routeService: RouteService,
     private val locationTypeService: LocationTypeService,
+    private val routeTypeService: RouteTypeService,
     private val dataCache: DataCache,
     @Value("\${parser.maxDurationFootPathsMinutes:30}") private val maxDurationFootPathsMinutes: Int,
     @Value("\${parser.generateFootPathsFromStops:false}") private val generateFootPathsFromStops: Boolean
@@ -34,7 +37,7 @@ class Gtfs(
         var stops: List<Stop> = listOf();
         var routes: List<Route> = listOf();
         var trips: List<Trip> = listOf();
-        var pathWays: Set<FootConnection> = setOf();
+        var pathWays: Set<FootPath> = setOf();
         var stopTimes: List<StopTime> = listOf();
         logger.info("Starting parsing GTFS Zip file")
         while (zipEntry != null) {
@@ -51,7 +54,7 @@ class Gtfs(
         zis.close()
         saveToDb(stops, routes, trips, convertGtfsToConnections(stopTimes))
         if (generateFootPathsFromStops)
-            runBlocking { generateAllPathWays(stops, pathWays) }
+            runBlocking { generateAllPathWays(stops) }
         logger.info("Saving foot connections")
         footTripConnectionsService.saveAll(pathWays.toList())
         logger.info("Finished parsing and saving data")
@@ -73,31 +76,35 @@ class Gtfs(
         locationTypeService.deleteAll()
     }
 
-    private suspend fun generateAllPathWays(stops: List<Stop>, pathWays: Set<FootConnection>) {
+    //TODO - generation of footConnections - optimize, better algorithm
+    private suspend fun generateAllPathWays(stops: List<Stop>) {
         logger.info("Starting generating pathways between stops")
         val stopsFiltered = stops.filter { it.locationTypeId != 1 }
+        val index = AtomicInteger();
         coroutineScope {
             for (i in stopsFiltered.indices) {
                 logger.info("Started generating from stop $i")
                 launch(Dispatchers.Default) {
-                    val outPathWays = mutableListOf<FootConnection>()
+                    val outPathWays = mutableListOf<FootPath>()
                     for (y in i until stopsFiltered.size) {
                         var distance = distanceInKm(stopsFiltered[i], stopsFiltered[y])
                         if (distance < 0) continue
-                        distance *= (1 + ((distance / 0.5) * 0.2))
+                        distance *= (1.2 + ((distance / 0.001) * 0.006))
                         val duration =
                             if (stopsFiltered[i].stopId == stopsFiltered[y].stopId) 0 else ceil(distance / 5).toInt()
                         if (duration > maxDurationFootPathsMinutes) continue
-                        outPathWays.add(FootConnection(stopsFiltered[i].stopId, stopsFiltered[y].stopId, duration))
+                        outPathWays.add(FootPath(stopsFiltered[i].stopId, stopsFiltered[y].stopId, duration))
                     }
                     logger.info("Finished generating from $i. Generated ${outPathWays.size} footConnections.Saving to DB")
                     withContext(Dispatchers.IO) {
                         footTripConnectionsService.saveAll(outPathWays)
                         logger.info("Finished saving from $i")
                     }
+                    index.addAndGet(outPathWays.size)
                 }
             }
         }
+        logger.info("Generated $index pathways")
         logger.info("Finished generating pathways between stops")
     }
 
@@ -116,13 +123,9 @@ class Gtfs(
         return dist;
     }
 
-    private fun deg2rad(deg: Double): Double {
-        return deg * Math.PI / 180.0
-    }
+    private fun deg2rad(deg: Double): Double = deg * Math.PI / 180.0
 
-    private fun rad2deg(rad: Double): Double {
-        return rad * 180.0 / Math.PI
-    }
+    private fun rad2deg(rad: Double): Double = rad * 180.0 / Math.PI
 
     @Transactional
     protected fun saveToDb(
@@ -133,13 +136,18 @@ class Gtfs(
     ) {
         logger.info("Saving data to database")
         createLocationTypes();
+        createRouteTypes();
         logger.info("Saving stops")
         stopService.saveAll(stops)
+        logger.info("Saving routes")
+        routeService.saveAll(routes)
         logger.info("Saving trips")
         tripService.saveAll(trips)
         logger.info("Saving connections")
+        //Multithreaded saving to database
         runBlocking {
-            connections.forEach {
+            //Before saving, sort connections by departure time, so it doesn't need to be sorted afterwards
+            connections.sortedBy { it.departureTime }.forEach {
                 launch(Dispatchers.IO) {
                     tripConnectionsService.save(it)
                 }
@@ -157,6 +165,21 @@ class Gtfs(
         locationTypeService.save(LocationType(4, "Boarding Area"))
     }
 
+    private fun createRouteTypes() {
+        logger.info("Saving route types")
+        routeTypeService.save(RouteType(0, "Tram, Streetcar, Light rail"))
+        routeTypeService.save(RouteType(1, "Subway, Metro"))
+        routeTypeService.save(RouteType(2, "Rail"))
+        routeTypeService.save(RouteType(3, "Bus"))
+        routeTypeService.save(RouteType(4, "Ferry"))
+        routeTypeService.save(RouteType(5, "Cable tram"))
+        routeTypeService.save(RouteType(6, "Aerial lift"))
+        routeTypeService.save(RouteType(7, "Funicular"))
+        routeTypeService.save(RouteType(11, "Trolleybus"))
+        routeTypeService.save(RouteType(12, "Monorail"))
+    }
+
+    //TODO - add data to connection to allow reconstruction back to StopTime
     private fun convertGtfsToConnections(stopTimes: List<StopTime>): List<TripConnection> {
         logger.info("Converting GTFS stop times to connections")
         if (stopTimes.isEmpty()) throw IllegalStateException("Stop times are empty")
@@ -171,7 +194,7 @@ class Gtfs(
                         prevStopTime.stopId,
                         stopTime.stopId,
                         prevStopTime.departureTime,
-                        stopTime.departureTime,
+                        stopTime.arrivalTime,
                         stopTime.tripId,
                         i
                     )
@@ -204,9 +227,9 @@ class Gtfs(
         return output.toList()
     }
 
-    fun stringToTime(text: String): Time {
+    fun stringToTime(text: String): Int {
         val split = text.split(":")
-        return Time(split[0].toInt(), split[1].toInt(), split[2].toInt())
+        return Utils.generateTime(split[0].toInt(), split[1].toInt(), split[2].toInt())
     }
 
     private fun parseTrips(zis: ZipInputStream): List<Trip> {
@@ -222,6 +245,8 @@ class Gtfs(
                     trip.getValue("route_id"),
                     trip.getOrDefault("trip_headsign", ""),
                     trip.getOrDefault("trip_short_name", ""),
+                    trip["wheelchair_accessible"]?.toInt(),
+                    trip["bikes_allowed"]?.toInt()
                 )
             )
         }
@@ -260,7 +285,8 @@ class Gtfs(
                     stop["stop_name"],
                     stop["stop_lat"]?.toDouble(),
                     stop["stop_lon"]?.toDouble(),
-                    stop["location_type"]?.toInt()
+                    stop["location_type"]?.toInt(),
+                    stop["wheelchair_boarding"]?.toInt()
                 )
             )
         }
@@ -268,16 +294,17 @@ class Gtfs(
         return output;
     }
 
-    private fun parsePathWays(zis: ZipInputStream): Set<FootConnection> {
+    //TODO - vyresit bi-directional, ukladat je dvakrat
+    private fun parsePathWays(zis: ZipInputStream): Set<FootPath> {
         logger.info("Parsing GTFS pathways.txt")
         val reader = zis.bufferedReader(charset = Charsets.UTF_8)
         val rows: List<Map<String, String>> = csvReader().readAllWithHeader(reader.readText())
-        val output = mutableSetOf<FootConnection>();
+        val output = mutableSetOf<FootPath>();
         for (pathWay in rows) {
             val time = pathWay.getValue("traversal_time")
             if (time.isBlank()) continue
             output.add(
-                FootConnection(
+                FootPath(
                     pathWay.getValue("from_stop_id"),
                     pathWay.getValue("to_stop_id"),
                     time.toInt()

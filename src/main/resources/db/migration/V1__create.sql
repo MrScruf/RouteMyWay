@@ -1,32 +1,54 @@
+create table locationType
+(
+    locationTypeId integer not null primary key,
+    name           varchar not null
+);
+
+create table routeType
+(
+    routeTypeId integer not null primary key,
+    name        varchar not null
+);
+
+create table route
+(
+    routeId     varchar not null primary key,
+    shortName   varchar,
+    longName    varchar,
+    routeTypeId integer not null
+);
+
 create table stop
 (
-    stopId         varchar not null primary key,
-    name           varchar,
-    latitude       float,
-    longitude      float,
-    locationTypeId int
+    stopId             varchar not null primary key,
+    name               varchar,
+    latitude           float,
+    longitude          float,
+    locationTypeId     int,
+    wheelChairBoarding int
 );
+
+alter table stop
+    ADD FOREIGN KEY (locationTypeId) REFERENCES locationType (locationTypeId);
 
 create table trip
 (
-    tripId        varchar not null primary key,
-    routeId       varchar not null,
-    serviceId     varchar not null,
-    tripHeadSign  varchar,
-    tripShortName varchar
+    tripId               varchar not null primary key,
+    routeId              varchar not null,
+    serviceId            varchar not null,
+    tripHeadSign         varchar,
+    tripShortName        varchar,
+    wheelChairAccessible int,
+    bikesAllowed         int
 );
 
-create table locationType
-(
-    locationTypeId int     not null primary key,
-    name           varchar not null
-);
-alter table stop
-    ADD FOREIGN KEY (locationTypeId)
-        REFERENCES locationType (locationTypeId);
+alter table trip
+    add foreign key (routeId) references route (routeId);
 
+alter table route
+    add foreign key (routeTypeId) references routeType (routeTypeId);
 
-create table footConnection
+create table footPath
 (
     departureStopId varchar not null,
     arrivalStopId   varchar not null,
@@ -34,26 +56,23 @@ create table footConnection
     PRIMARY KEY (departureStopId, arrivalStopId)
 );
 
-alter table footConnection
+alter table footPath
     ADD FOREIGN KEY (departureStopId)
         REFERENCES stop (stopId);
 
-alter table footConnection
+alter table footPath
     ADD FOREIGN KEY (arrivalStopId)
         REFERENCES stop (stopId);
+
 -- Table defined for H2, needs to change id IDENTITY for other RDBMS
 create table tripConnection
 (
-    tripConnectionId    identity not null primary key,
-    departureStopId     varchar  not null,
-    arrivalStopId       varchar  not null,
-    tripId              varchar  not null,
-    departureTimeHour   int      not null,
-    departureTimeMinute int      not null,
-    departureTimeSecond int      not null,
-    arrivalTimeHour     int      not null,
-    arrivalTimeMinute   int      not null,
-    arrivalTimeSecond   int      not null
+    tripConnectionId identity not null primary key,
+    departureStopId  varchar  not null,
+    arrivalStopId    varchar  not null,
+    tripId           varchar  not null,
+    departureTime    int      not null,
+    arrivalTime      int      not null
 );
 
 alter table tripConnection

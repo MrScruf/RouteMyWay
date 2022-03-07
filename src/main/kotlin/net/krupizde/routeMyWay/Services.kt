@@ -41,7 +41,13 @@ class StopService() : GeneralService<Stop, String, StopRepository>();
 class TripService() : GeneralService<Trip, String, TripRepository>();
 
 @Service
-class FootConnectionsService() : GeneralService<FootConnection, FootConnectionId, FootConnectionRepository>();
+class FootConnectionsService() : GeneralService<FootPath, FootPathId, FootConnectionRepository>();
 
 @Service
 class LocationTypeService() : GeneralService<LocationType, Int, LocationTypeRepository>();
+
+@Service
+class RouteService() : GeneralService<Route, String, RouteRepository>();
+
+@Service
+class RouteTypeService() : GeneralService<RouteType, Int, RouteTypeRepository>();

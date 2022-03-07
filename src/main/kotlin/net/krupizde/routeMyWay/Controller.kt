@@ -15,8 +15,8 @@ class Controller(val gtfs: Gtfs, val csa: CSA) {
     }
 
     @GetMapping("/{idStart}/{idStop}")
-    fun test(@PathVariable idStart: String,@PathVariable idStop: String): ResponseEntity<*>{
-        val out = csa.findShortestPath(idStart, idStop, Time(10, 10, 0))
+    fun test(@PathVariable idStart: String, @PathVariable idStop: String): ResponseEntity<*> {
+        val out = csa.findShortestPathCSAProfile(idStart, idStop, Utils.generateTime(10, 10, 0))
         //println(out)
         return ResponseEntity.ok(out)
     }
