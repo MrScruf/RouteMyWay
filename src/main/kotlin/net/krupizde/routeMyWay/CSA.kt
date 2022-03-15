@@ -3,47 +3,42 @@ package net.krupizde.routeMyWay
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import kotlin.math.min
 
 //TODO - Přepsat na csa profile (Priorita na zítra)
 //TODO - Refactoring, sestavování cesty udělat rozumněji
 @Service
 class CSA(
-    private val dataCache: DataCache
+    private val dataCache: DataCache,
+    private val stopService: StopService,
+    private val tripService: TripService,
+    private val routeService: RouteService
 ) {
     private val logger: Logger = LoggerFactory.getLogger(CSA::class.java)
-    fun query(departureStopId: String, arrivalStopId: String, startTime: Int): Map<String, Boolean> {
+    fun query(departureStopId: Int, arrivalStopId: Int, startTime: UInt): Set<Int> {
         //Setup
-        val stops = mutableMapOf<String, Int>()
-        val trips = mutableMapOf<String, Boolean>()
+        val stops = mutableMapOf<Int, UInt>().withDefault { UInt.MAX_VALUE }
+        val trips = mutableSetOf<Int>()
         val tripConnections = dataCache.tripConnections
         val footConnections = dataCache.footConnections
-        for (footConnection in footConnections.getValue(departureStopId)) {
-            stops[footConnection.arrivalStopId] = Utils.addMinutesToTime(startTime, footConnection.durationInMinutes)
+        footConnections.getValue(departureStopId).forEach {
+            stops[it.arrivalStopId] = Utils.addMinutesToTime(startTime, it.durationInMinutes)
         }
-        //TODO - find first reacheable connection using binary search
         val startIndex = firstConnectionIndexByDepartureTime(startTime)
-        //Algorithm
-        for (connection in tripConnections.subList(startIndex, tripConnections.size)) {
-            if (stops.getOrDefault(arrivalStopId, Int.MAX_VALUE) <= connection.departureTime) break;
-            if (trips.getOrDefault(connection.tripId, false) || stops.getOrDefault(
-                    connection.departureStopId,
-                    Int.MAX_VALUE
-                ) <= connection.departureTime
+        val sublist = tripConnections.subList(startIndex, tripConnections.size)
+        for (connection in sublist) {
+            if (stops.getValue(arrivalStopId) <= connection.departureTime) break;
+            if (trips.contains(connection.tripId) ||
+                stops.getValue(connection.departureStopId) <= connection.departureTime
             ) {
-                trips[connection.tripId] = true;
-                if (connection.arrivalTime < stops.getOrDefault(connection.arrivalStopId, Int.MAX_VALUE)) {
+                trips.add(connection.tripId);
+                if (connection.arrivalTime < stops.getValue(connection.arrivalStopId)) {
                     for (footConnection in footConnections.getValue(connection.arrivalStopId)) {
-                        if (Utils.addMinutesToTime(
-                                connection.arrivalTime,
-                                footConnection.durationInMinutes
-                            ) < stops.getOrDefault(
-                                footConnection.arrivalStopId,
-                                Int.MAX_VALUE
+                        stops[footConnection.arrivalStopId] =
+                            min(
+                                Utils.addMinutesToTime(connection.arrivalTime, footConnection.durationInMinutes),
+                                stops.getValue(footConnection.arrivalStopId)
                             )
-                        ) {
-                            stops[footConnection.arrivalStopId] =
-                                Utils.addMinutesToTime(connection.arrivalTime, footConnection.durationInMinutes)
-                        }
                     }
                 }
             }
@@ -51,92 +46,117 @@ class CSA(
         return trips;
     }
 
-    fun firstConnectionIndexByDepartureTime(time: Int): Int {
+    fun firstConnectionIndexByDepartureTime(time: UInt): Int {
         var index = dataCache.tripConnections.binarySearch { it.departureTime.compareTo(time) }
-        if (index < 0) return -index - 1
+        if (index < 0) return (-index - 1)
         while (dataCache.tripConnections[index].departureTime == time) {
             index--;
         }
         return index;
     }
 
-    //TODO - tripConnections restrictions - Probably done -> bikes allowed, Probably done -> vehicle type - only trains, busses, trams or combinations
-    //TODO - footConnections restrictions - wheelchair accessible - add skipping, if stop does not have wheelchair_boarding
-    //TODO - arrival time rounding -
     fun findShortestPathCSAProfile(
-        departureStopId: String,
-        arrivalStopId: String,
-        startTime: Int,
+        departureStopGtfsId: String,
+        arrivalStopGtfsId: String,
+        departureTime: UInt,
         bikesAllowed: Boolean = false,
         wheelChairAccessible: Boolean = false,
-        vehiclesAllowed: Set<Int>? = null,
-    ): ParetoProfile {
+        vehiclesAllowed: Set<Int>? = null
+    ): Path {
+        val departureStopId = stopService.findByStopId(departureStopGtfsId)?.id ?: error("Non-existent stop");
+        val arrivalStopId = stopService.findByStopId(arrivalStopGtfsId)?.id ?: error("Non-existent stop");
+        return findShortestPathCSAProfile(
+            departureStopId,
+            arrivalStopId,
+            departureTime,
+            bikesAllowed,
+            wheelChairAccessible,
+            vehiclesAllowed
+        )
+    }
+
+    //TODO - tripConnections restrictions - Probably done -> bikes allowed, Probably done -> vehicle type - only trains, busses, trams or combinations
+    //TODO - footConnections restrictions - wheelchair accessible - add skipping, if stop does not have wheelchair_boarding
+    fun findShortestPathCSAProfile(
+        departureStopId: Int,
+        arrivalStopId: Int,
+        departureTime: UInt,
+        bikesAllowed: Boolean = false,
+        wheelChairAccessible: Boolean = false,
+        vehiclesAllowed: Set<Int>? = null
+    ): Path {
         logger.info("Started setup")
         //SETUP
         //TODO - TripConnection not nullable ?
-        val trips = mutableMapOf<String, Pair<Int, TripConnection?>>().withDefault { Pair(Int.MAX_VALUE, null) };
-        val reachableTrips = query(departureStopId, arrivalStopId, startTime).withDefault { false }
-        val stops = mutableMapOf<String, ParetoProfile>().withDefault {
-            ParetoProfile(mutableListOf(StopProfile(Int.MAX_VALUE, Int.MAX_VALUE)))
+        val trips = mutableMapOf<Int, Pair<UInt, TripConnection?>>().withDefault { Pair(UInt.MAX_VALUE, null) };
+        logger.info("Running basic CSA")
+        val reachableTrips = query(departureStopId, arrivalStopId, departureTime)
+        logger.info("Finished basic CSA")
+        val stops = mutableMapOf<Int, ParetoProfile>().withDefault {
+            ParetoProfile(mutableListOf(StopProfile(UInt.MAX_VALUE, UInt.MAX_VALUE)))
         };
-        val durationsToTarget = mutableMapOf<String, Int>().withDefault { Int.MAX_VALUE };
-        val connections = dataCache.tripConnections
+        val durationsToTarget = mutableMapOf<Int, UInt>().withDefault { UInt.MAX_VALUE };
         val footPaths = dataCache.footConnections
-        val routes = dataCache.routes
-        val tripsEntities = dataCache.trips
-        val stopsEntities = dataCache.stops
-        footPaths.getValue(arrivalStopId).forEach { durationsToTarget[it.departureStopId] = it.durationInMinutes }
+        footPaths.getValue(arrivalStopId)
+            .forEach { durationsToTarget[it.arrivalStopId] = it.durationInMinutes.toUInt() }
 
         logger.info("Started algorithm")
         //ALGORITHM
-        for (connection in connections.asReversed()) {
+        val reversed = dataCache.tripConnections.asReversed()
+        for (connection in reversed) {
+            //if (connection.departureTime < departureTime) break;
             //Optimization, we dont process unreachable trips.
-            if (!reachableTrips.getValue(connection.tripId) ||
-                //Allowed vehicles
-                (vehiclesAllowed != null && !vehiclesAllowed.contains(routes[tripsEntities.getValue(connection.tripId).routeId]?.routeTypeId)) ||
-                //Allowed bikes
-                (bikesAllowed && tripsEntities[connection.tripId]?.bikesAllowed == 1) ||
-                //Accessible for wheelchairs
-                (wheelChairAccessible && tripsEntities[connection.tripId]?.wheelChairAccessible == 1)
+            if (!reachableTrips.contains(connection.tripId)) continue
+            if ((vehiclesAllowed != null && !vehiclesAllowed.contains(dataCache.trips[connection.tripId]?.routeTypeId)) ||
+                (bikesAllowed && dataCache.trips[connection.tripId]?.bikesAllowed == 1) ||
+                (wheelChairAccessible && dataCache.trips[connection.tripId]?.wheelChairAccessible == 1)
             ) continue;
             //arrival time, when walking to the target
-            //TODO - Round time to 5 minute chunks down, save original time somehow (speciality inside StopProfile ?)
-            val r1 = if (connection.arrivalStopId == arrivalStopId) connection.arrivalTime else Int.MAX_VALUE
+            val r1 = if (durationsToTarget.getValue(connection.arrivalStopId) == UInt.MAX_VALUE) UInt.MAX_VALUE
+            else (Utils.addMinutesToTime(
+                connection.arrivalTime,
+                durationsToTarget.getValue(connection.arrivalStopId).toInt()
+            ))
             //arrival time, when seated on the current connection
             val r2 = trips.getValue(connection.tripId).first
             //arrival time when transfering
             val r3 = arrivalTimeFromStop(stops.getValue(connection.arrivalStopId), connection.arrivalTime)
             //best arrival time when starting in current connection
             val rc = minOf(r1, r2, r3)
-            if (stops.getValue(connection.arrivalStopId).dominates(StopProfile(connection.departureTime, rc))) continue
-            footPaths.getValue(connection.departureStopId).asSequence().filter {
-                (wheelChairAccessible && it.departureStopId != it.arrivalStopId && //TODO - Bude toto fungovat ?
-                        stopsEntities[it.departureStopId]?.wheelChairBoarding == 1 &&
-                        stopsEntities[it.arrivalStopId]?.wheelChairBoarding == 1)
-            }.forEach {
-                stops.getValue(it.departureStopId)
-                    .add(
+            val profile = StopProfile(connection.departureTime, rc)
+            // Source domination
+            if (stops.getValue(departureStopId).dominates(profile)) continue
+            // Handle transfers and initial footpaths
+            if (!stops.getValue(connection.arrivalStopId).dominates(profile))
+                footPaths.getValue(connection.departureStopId).forEach {
+                    if (wheelChairAccessible && it.departureStopId != it.arrivalStopId &&
+                        (dataCache.stops[it.departureStopId]?.wheelChairBoarding == 1) &&
+                        (dataCache.stops[it.arrivalStopId]?.wheelChairBoarding == 1)
+                    ) return@forEach
+                    if(it.departureStopId == 3407){
+                        println("Jahudska")
+                    }
+                    stops.getOrPut(it.arrivalStopId) { ParetoProfile() }.add(
                         StopProfile(
                             Utils.minusMinutesFromTime(connection.departureTime, it.durationInMinutes),
                             rc,
                             connection,
-                            //TODO - may be nullable ?
                             trips[connection.tripId]?.second
                         )
                     )
-            }
-            trips[connection.tripId] = Pair(rc, connection)
+                }
+            val storeConnection =
+                /*if (trips.getValue(connection.tripId).first < rc) trips[connection.tripId]!!.second else */connection
+            trips[connection.tripId] = Pair(rc, storeConnection)
         }
         logger.info("Finished algorithm")
-        //return buildPath(stops, trips)
-        return stops.getValue(arrivalStopId)
+        return buildPath(stops, arrivalStopId, departureStopId, departureTime, durationsToTarget)
     }
 
-    //TODO - isn't copying the profile time too slow ?
-    fun arrivalTimeFromStop(stopProfile: ParetoProfile, arrivalTime: Int): Int {
-        for (profile in stopProfile.profiles)
-            if (profile.departureTime >= arrivalTime) return Utils.addTransferToTime(profile.arrivalTime)
-        return Int.MAX_VALUE
+    fun arrivalTimeFromStop(stopProfile: ParetoProfile, arrivalTime: UInt): UInt {
+        return stopProfile.profiles.find { it.departureTime >= arrivalTime }?.arrivalTime?.let {
+            Utils.addTransferToTime(it)
+        } ?: UInt.MAX_VALUE
     }
 
     /* The extraction starts by computing the time needed to directly transfer to the target. Doing
@@ -147,15 +167,96 @@ class CSA(
     journey. The algorithm then sets s to l exit
     arr_stop and τs to l exit
     arr_time and iteratively continues to find the
-    remaining legs of the output journey. */
+    remaining legs of the output journey.
+    */
     fun buildPath(
-        stops: Map<String, ParetoProfile>,
-        trips: Map<String, Int>,
-        arrivalStopId: String,
-        departureStopId: String,
-        durationsToTarget: Map<String, Int>
+        stops: Map<Int, ParetoProfile>,
+        arrivalStopId: Int,
+        departureStopId: Int,
+        departureTime: UInt,
+        durationsToTarget: Map<Int, UInt>
     ): Path {
-        TODO()
+        val outStopsIds: MutableSet<Int> =
+            mutableSetOf(departureStopId, arrivalStopId)
+        val outTripsIds: MutableSet<Int> = mutableSetOf()
+        val outRoutes: MutableSet<Route> = mutableSetOf()
+        val outStopTimes: MutableSet<StopTimeOut> = mutableSetOf()
+        val outFootPaths: MutableSet<FootPath> = mutableSetOf()
+        var departureStopIdTmp = departureStopId
+        var departureTimeTmp = departureTime
+        var sequence = 0;
+        do {
+            val temp = stops[departureStopIdTmp]
+            val durationDirectly = durationsToTarget.getValue(departureStopIdTmp).toDouble()
+            val profile =
+                stops[departureStopIdTmp]?.profiles?.first { it.departureTime >= departureTimeTmp }
+                    ?: StopProfile()
+            //TODO - co když profile je non-existent a vysledek je 0 ?
+            if (Utils.timeToMinutes(Utils.timeMinusTime(profile.arrivalTime, profile.departureTime))
+                > durationDirectly
+            ) {
+                outFootPaths.add(FootPath(departureStopIdTmp, arrivalStopId, durationDirectly.toInt()))
+                break;
+            } else {
+                try {
+                    departureStopIdTmp = profile.exitConnection?.arrivalStopId ?: error("")
+                } catch (e: Exception) {
+                    logger.error(e.stackTraceToString())
+                    break;
+                }
+                departureTimeTmp = profile.exitConnection.arrivalTime
+                outStopsIds.add(profile.exitConnection.arrivalStopId)
+                outStopsIds.add(profile.exitConnection.departureStopId)
+                outStopsIds.add(profile.enterConnection.departureStopId)
+                outStopsIds.add(profile.enterConnection.arrivalStopId)
+                outTripsIds.add(profile.exitConnection.tripId)
+                outTripsIds.add(profile.enterConnection.tripId)
+                outStopTimes.add(
+                    StopTimeOut(
+                        profile.enterConnection.tripId,
+                        Utils.extractTime(profile.enterConnection.departureTime),
+                        Utils.extractTime(profile.enterConnection.departureTime),
+                        profile.enterConnection.departureStopId,
+                        sequence++
+                    )
+                )
+                outStopTimes.add(
+                    StopTimeOut(
+                        profile.enterConnection.tripId,
+                        Utils.extractTime(profile.enterConnection.arrivalTime),
+                        Utils.extractTime(profile.enterConnection.arrivalTime),
+                        profile.enterConnection.arrivalStopId,
+                        sequence++
+                    )
+                )
+                outStopTimes.add(
+                    StopTimeOut(
+                        profile.exitConnection.tripId,
+                        Utils.extractTime(profile.exitConnection.departureTime),
+                        Utils.extractTime(profile.exitConnection.departureTime),
+                        profile.exitConnection.departureStopId,
+                        sequence++
+                    )
+                )
+                outStopTimes.add(
+                    StopTimeOut(
+                        profile.exitConnection.tripId,
+                        Utils.extractTime(profile.exitConnection.arrivalTime),
+                        Utils.extractTime(profile.exitConnection.arrivalTime),
+                        profile.exitConnection.arrivalStopId,
+                        sequence++
+                    )
+                )
+            }
+        } while (profile.exitConnection?.arrivalStopId != arrivalStopId)
+
+        return Path(
+            stopService.findAllByIds(outStopsIds.toList()),
+            tripService.findAllByIds(outTripsIds.toList()),
+            outRoutes.toList(),
+            outStopTimes.toList(),
+            outFootPaths.toList()
+        )
     }
 
 }

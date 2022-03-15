@@ -17,10 +17,9 @@ class DataCache(
 ) {
     private val logger: Logger = LoggerFactory.getLogger(DataCache::class.java)
     var tripConnections: List<TripConnection> = listOf()
-    var footConnections: Map<String, List<FootPath>> = mapOf()
-    var stops: Map<String, Stop> = mapOf()
-    var trips: Map<String, Trip> = mapOf()
-    var routes: Map<String, Route> = mapOf()
+    var footConnections: Map<Int, Set<FootPath>> = mapOf()
+    var stops: Map<Int, StopLight> = mapOf()
+    var trips: Map<Int, TripLight> = mapOf()
 
     @Synchronized
     fun reloadData() {
@@ -28,28 +27,28 @@ class DataCache(
         // reloading multiple times in a row, which is not desirable
         logger.info("Reloading data cache")
         logger.debug("Reloading trip connections")
-        tripConnections = tripConnectionsService.findAll().sortedBy { it.departureTime }
+        tripConnections = tripConnectionsService.findAllLight().sortedBy { it.departureTime }
         logger.debug("Reloading foot connections")
         val tmp = footConnectionsService.findAll()
-        val tmpMap = mutableMapOf<String, MutableList<FootPath>>()
+        val tmpMap = mutableMapOf<Int, MutableSet<FootPath>>().withDefault { mutableSetOf() }
         for (footConnection in tmp) {
             //After loading one-sided footpath from DB, save the footpath from both sides
-            tmpMap.getOrPut(footConnection.arrivalStopId) { mutableListOf() }.add(footConnection)
-            tmpMap.getOrPut(footConnection.departureStopId) { mutableListOf() }.add(
-                FootPath(
-                    footConnection.arrivalStopId,
-                    footConnection.departureStopId,
-                    footConnection.durationInMinutes
+            tmpMap.getOrPut(footConnection.departureStopId) { mutableSetOf() }.add(footConnection)
+            if (footConnection.arrivalStopId != footConnection.departureStopId)
+                tmpMap.getOrPut(footConnection.arrivalStopId) { mutableSetOf() }.add(
+                    FootPath(
+                        footConnection.arrivalStopId,
+                        footConnection.departureStopId,
+                        footConnection.durationInMinutes
+                    )
                 )
-            )
         }
         footConnections = tmpMap.toMap()
         logger.debug("Reloading stops")
-        stops = stopService.findAll().associateBy { it.stopId }
+        stops = stopService.findAllLight().associateBy { it.stopId }
         logger.debug("Reloading trips")
-        trips = tripService.findAll().associateBy { it.tripId }
-        logger.debug("Reloading routes")
-        routes = routeService.findAll().associateBy { it.routeId }
+        trips = tripService.findAllLight().associateBy { it.tripId }
         logger.info("Data cache reloaded")
+        System.gc()
     }
 }

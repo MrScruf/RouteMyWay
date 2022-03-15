@@ -1,135 +1,84 @@
 package net.krupizde.routeMyWay
 
-import java.io.Serializable
 import javax.persistence.Column
 import javax.persistence.Entity
 import javax.persistence.Id
-import javax.persistence.IdClass
+import javax.persistence.Table
 import kotlin.math.max
 
-@Entity
-data class TripConnection(
-    val departureStopId: String,
-    val arrivalStopId: String,
-    val departureTime: Int,
-    val arrivalTime: Int,
-    val tripId: String,
-    @Id val tripConnectionId: Int = -1
-)
 
 @Entity
-
-@IdClass(FootPathId::class)
-data class FootPath(
-    @Id
-    val departureStopId: String = "",
-    @Id
-    val arrivalStopId: String = "",
-    @Column(name = "duration") val durationInMinutes: Int = -1
-)
-
-data class FootPathId(
-    val departureStopId: String = "",
-    val arrivalStopId: String = ""
-) : Serializable;
-//TODO - wheelchair accessibility - how to store properly
-@Entity
-data class Trip(
-    @Id val tripId: String,
-    val serviceId: String,
-    val routeId: String,
-    val tripHeadSign: String?,
-    val tripShortName: String?,
+@Table(name = "trip")
+data class TripLight(
+    @Id @Column(name = "id") val tripId: Int,
     val wheelChairAccessible: Int?,
     val bikesAllowed: Int?,
-    @Transient var reachable: Boolean = false
-);
-//TODO - wheelchair accessibility - how to store properly
-@Entity
-data class Stop(
-    @Id val stopId: String,
-    val name: String?,
-    val latitude: Double?,
-    val longitude: Double?,
-    val locationTypeId: Int?,
-    val wheelChairBoarding: Int?,
-    @Transient var shortestTime: Int = Int.MAX_VALUE
-);
-
-@Entity
-data class LocationType(@Id val locationTypeId: Int, val name: String)
-
-data class StopTime(
-    val tripId: String,
-    val arrivalTime: Int,
-    val departureTime: Int,
-    val stopId: String,
-    val stopSequence: Int
+    val routeTypeId: Int
 )
 
 @Entity
-data class Route(
-    @Id val routeId: String,
-    val shortName: String?,
-    val longName: String?,
-    val routeTypeId: Int
-);
-@Entity
-data class RouteType(@Id val routeTypeId: Int, val name: String);
+@Table(name = "stop")
+data class StopLight(@Id @Column(name = "id") val stopId: Int, val wheelChairBoarding: Int?)
 
 
-data class PathTripConnection(
-    val departureTime: Int,
-    val arrivalTime: Int,
-    val departureStop: Stop,
-    val arrivalStop: Stop
+data class StopTimeOut(
+    val tripId: Int,
+    val arrivalTime: Time,
+    val departureTime: Time,
+    val stopId: Int,
+    val stopSequence: Int
 )
 
 data class Path(
     val stops: List<Stop>,
     val trips: List<Trip>,
     val routes: List<Route>,
-    val stopTimes: List<StopTime>,
+    val stopTimes: List<StopTimeOut>,
     val footPaths: List<FootPath>
 )
 
 /**
  * Pareto profile holding all profiles of a stop in increasing order of departure times
  */
-data class ParetoProfile(val profiles: MutableList<StopProfile> = mutableListOf()) {
-    fun dominates(vector: StopProfile): Boolean {
-        for (profile in profiles) {
+data class ParetoProfile(
+    val profiles: MutableList<StopProfile> = mutableListOf(StopProfile())
+) {
+    fun dominates(vector: StopProfile, fromIndex: Int = 0): Boolean {
+        for (profile in profiles.subList(fromIndex, profiles.size)) {
             if (profile.departureTime > vector.departureTime) return false;
             if (profile.dominates(vector)) return true;
         }
         return false;
     }
 
-    //TODO - Slow. Is this the right way ?
+    /**
+     * Unfortunately, we can no longer guarantee that the departure time of p will be the earliest
+    in each profile. A slightly more complex insertion algorithm is therefore needed: Our algorithm
+    temporarily removes pairs departing before the new pair. It then inserts p, if nondominated, and
+    then reinserts all previously removed pairs that are not dominated by p
+     */
     fun add(profile: StopProfile) {
-        if (dominates(profile)) return;
-        val index = max(profiles.indexOfFirst { it.departureTime >= profile.departureTime }, 0)
-        profiles.add(index, profile)
+        val index = max(profiles.indexOfFirst { it.departureTime > profile.departureTime }, 0)
+        if (dominates(profile, index )) return;
+        if (profiles[index].departureTime == profile.departureTime) profiles[index] = profile
+        else profiles.add(index, profile)
         profiles.subList(0, index).removeIf { profile.dominates(it) }
     }
 }
 
 data class StopProfile(
-    val departureTime: Int,
-    val arrivalTime: Int,
-    val enterConnectionId: TripConnection? = null,
-    val exitConnectionId: TripConnection? = null
+    val departureTime: UInt = UInt.MAX_VALUE,
+    val arrivalTime: UInt = UInt.MAX_VALUE,
+    val enterConnection: TripConnection = TripConnection(-1, -1, -1, -1, -1),
+    val exitConnection: TripConnection? = null
 ) {
-    private fun toList(): List<Int> = listOf(departureTime, arrivalTime)
+    fun dominates(second: StopProfile): Boolean =
+        (departureTime < second.departureTime && arrivalTime <= second.arrivalTime) ||
+                (departureTime <= second.departureTime && arrivalTime < second.arrivalTime)
+}
 
-    fun dominates(second: StopProfile): Boolean {
-        val thisList = this.toList()
-        val secondList = second.toList()
-        var oneSmaller = false;
-        for (i in thisList.indices) {
-            if (thisList[i] > secondList[i]) return false;
-            if (thisList[i] < secondList[i]) oneSmaller = true;
-        }
-        return oneSmaller;
+data class Time(val hour: Int, val minute: Int, val second: Int) {
+    override fun toString(): String {
+        return "$hour:$minute:$second"
     }
-};
+}

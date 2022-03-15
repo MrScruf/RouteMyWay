@@ -1,9 +1,12 @@
 spring:
   datasource:
-    url: jdbc:h2:file:./data/demo;AUTO_RECONNECT=TRUE;DB_CLOSE_ON_EXIT=FALSE
+    url: jdbc:h2:file:./data/demo;AUTO_RECONNECT=TRUE;DB_CLOSE_ON_EXIT=FALSE;DEFRAG_ALWAYS=true;AUTO_SERVER=TRUE
     username: sa
     password: password
     driverClassName: org.h2.Driver
+    hikari:
+      maximum-pool-size: 20
+      connection-timeout: 100000
   servlet:
     multipart:
       enabled: true
@@ -17,5 +20,8 @@ spring:
         implicit-strategy: org.hibernate.boot.model.naming.ImplicitNamingStrategyLegacyJpaImpl
       ddl-auto: none
 parser:
-  maxDurationFootPathsMinutes: 10
+  maxDurationFootPathsMinutes: 30
   generateFootPathsFromStops: true
+logging:
+  file:
+    path: ./log
