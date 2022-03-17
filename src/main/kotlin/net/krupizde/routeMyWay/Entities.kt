@@ -59,7 +59,7 @@ data class ParetoProfile(
      */
     fun add(profile: StopProfile) {
         val index = max(profiles.indexOfFirst { it.departureTime > profile.departureTime }, 0)
-        if (dominates(profile, index )) return;
+        if (dominates(profile, index)) return;
         if (profiles[index].departureTime == profile.departureTime) profiles[index] = profile
         else profiles.add(index, profile)
         profiles.subList(0, index).removeIf { profile.dominates(it) }
@@ -73,8 +73,9 @@ data class StopProfile(
     val exitConnection: TripConnection? = null
 ) {
     fun dominates(second: StopProfile): Boolean =
-        (departureTime < second.departureTime && arrivalTime <= second.arrivalTime) ||
-                (departureTime <= second.departureTime && arrivalTime < second.arrivalTime)
+        departureTime >= second.departureTime && arrivalTime <= second.arrivalTime
+    /*(departureTime < second.departureTime && arrivalTime <= second.arrivalTime) ||
+            (departureTime <= second.departureTime && arrivalTime < second.arrivalTime)*/
 }
 
 data class Time(val hour: Int, val minute: Int, val second: Int) {

@@ -119,21 +119,20 @@ class Gtfs(
 
     private suspend fun generateAllPathWays(stops: List<Stop>) {
         logger.info("Starting generating pathways between stops")
-        val stopsFiltered = stops.filter { it.locationTypeId.locationTypeId != 1 }
         val index = AtomicInteger();
         coroutineScope {
-            for (i in stopsFiltered.indices) {
+            for (i in stops.indices) {
                 logger.debug("Started generating from stop $i")
                 launch(Dispatchers.Default) {
                     val outPathWays = mutableListOf<FootPath>()
-                    for (y in i until stopsFiltered.size) {
-                        var distanceInKm = distanceInKm(stopsFiltered[i], stopsFiltered[y])
+                    for (y in i until stops.size) {
+                        var distanceInKm = distanceInKm(stops[i], stops[y])
                         if (distanceInKm < 0) continue
                         distanceInKm *= 1.5
                         val duration =
-                            if (stopsFiltered[i].stopId == stopsFiltered[y].stopId) 0 else ceil((distanceInKm / 5) * 60).toInt()
+                            if (stops[i].stopId == stops[y].stopId) 0 else ceil((distanceInKm / 5) * 60).toInt()
                         if (duration > maxDurationFootPathsMinutes) continue
-                        outPathWays.add(FootPath(stopsFiltered[i].id, stopsFiltered[y].id, duration))
+                        outPathWays.add(FootPath(stops[i].id, stops[y].id, duration))
                     }
                     logger.debug("Finished generating from $i. Generated ${outPathWays.size} footConnections.Saving to DB")
                     withContext(Dispatchers.IO) {
@@ -226,8 +225,8 @@ class Gtfs(
             output.add(
                 StopTimeGtfs(
                     stopTime.getValue("trip_id"),
-                    stringToTime(stopTime.getValue("arrival_time")),
-                    stringToTime(stopTime.getValue("departure_time")),
+                    Utils.stringToTime(stopTime.getValue("arrival_time")),
+                    Utils.stringToTime(stopTime.getValue("departure_time")),
                     stopTime.getValue("stop_id"),
                     stopTime.getValue("stop_sequence").toInt()
                 )
@@ -235,11 +234,6 @@ class Gtfs(
         }
         logger.info("Finished parsing GTFS stop_times.txt")
         return output.toList()
-    }
-
-    fun stringToTime(text: String): Int {
-        val split = text.split(":")
-        return Utils.generateTime(split[0].toInt(), split[1].toInt(), split[2].toInt()).toInt()
     }
 
     private fun parseTrips(zis: ZipInputStream): List<TripGtfs> {

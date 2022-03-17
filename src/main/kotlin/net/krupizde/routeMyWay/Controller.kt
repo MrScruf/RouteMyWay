@@ -6,7 +6,7 @@ import org.springframework.web.multipart.MultipartFile
 
 @RestController
 @RequestMapping("")
-class Controller(private val gtfs: Gtfs, private val csa: CSA) {
+class Controller(private val gtfs: Gtfs, private val csa: CSA, private val stopService: StopService) {
 
     @PostMapping("/load")
     fun loadGtfs(@RequestParam("file") file: MultipartFile): ResponseEntity<*> {
@@ -16,13 +16,15 @@ class Controller(private val gtfs: Gtfs, private val csa: CSA) {
 
     @GetMapping("/{departureStopId}/{arrivalStopId}")
     fun test(
-        @PathVariable departureStopId: String,
-        @PathVariable arrivalStopId: String,
-        @RequestBody time: Time
+        @PathVariable departureStopId: String, @PathVariable arrivalStopId: String, @RequestParam departureTime: String
     ): ResponseEntity<*> {
-        //TODO - najdi vysledek csa.query pro muzeum-A na Haje
-        val out = csa.findShortestPathCSAProfile(departureStopId, arrivalStopId, Utils.generateTime(time))
+        val out = csa.findShortestPathCSAProfile(departureStopId, arrivalStopId, Utils.stringToTime(departureTime))
         //println(out)
         return ResponseEntity.ok(out)
+    }
+
+    @GetMapping("/stops")
+    fun stops(): List<Stop> {
+        return stopService.findAll()
     }
 }

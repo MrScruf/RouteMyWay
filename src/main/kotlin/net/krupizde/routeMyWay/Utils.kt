@@ -11,6 +11,11 @@ class Utils {
             return higher or (1u shl 8) or lower
         }
 
+        fun stringToTime(text: String): UInt {
+            val split = text.split(":")
+            return generateTime(split[0].toInt(), split[1].toInt(), split[2].toInt())
+        }
+
         fun generateTime(time: Time): UInt {
             return generateTime(time.hour, time.minute, time.second)
         }
@@ -28,6 +33,7 @@ class Utils {
         }
 
         fun addMinutesToTime(time: UInt, minutes: Int): UInt {
+            if (minutes == Int.MAX_VALUE) return UInt.MAX_VALUE
             return addSecondsToTime(time, minutes.toUInt() * 60u)
         }
 

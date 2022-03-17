@@ -4,16 +4,16 @@ package net.krupizde.routeMyWay
 data class TripConnectionGtfs(
     val departureStopId: String,
     val arrivalStopId: String,
-    val departureStopDepartureTime: Int,
-    val arrivalStopArrivalTime: Int,
+    val departureStopDepartureTime: UInt,
+    val arrivalStopArrivalTime: UInt,
     val tripId: String,
 ) {
     fun convertToTripConnection(departureStop: Stop, arrivalStop: Stop, trip: Trip, id: Int): TripConnection {
         return TripConnection(
             departureStop.id,
             arrivalStop.id,
-            departureStopDepartureTime,
-            arrivalStopArrivalTime,
+            departureStopDepartureTime.toInt(),
+            arrivalStopArrivalTime.toInt(),
             trip.id,
             id
         )
@@ -45,8 +45,8 @@ data class FootPathGtfs(
 
 data class StopTimeGtfs(
     val tripId: String,
-    val arrivalTime: Int,
-    val departureTime: Int,
+    val arrivalTime: UInt,
+    val departureTime: UInt,
     val stopId: String,
     val stopSequence: Int
 )
