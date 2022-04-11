@@ -1,0 +1,27 @@
+spring:
+  datasource:
+    url: jdbc:h2:file:./data/demo;AUTO_RECONNECT=TRUE;DB_CLOSE_ON_EXIT=FALSE;DEFRAG_ALWAYS=true;AUTO_SERVER=TRUE
+    username: sa
+    password: password
+    driverClassName: org.h2.Driver
+    hikari:
+      maximum-pool-size: 20
+      connection-timeout: 100000
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 100MB
+      max-request-size: 100MB
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+        implicit-strategy: org.hibernate.boot.model.naming.ImplicitNamingStrategyLegacyJpaImpl
+      ddl-auto: none
+parser:
+  maxDurationFootPathsMinutes: 30
+  generateFootPathsFromStops: true
+logging:
+  file:
+    path: ./log
