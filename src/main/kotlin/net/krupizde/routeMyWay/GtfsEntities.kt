@@ -1,19 +1,25 @@
 package net.krupizde.routeMyWay
 
+import java.time.LocalDate
+
 
 data class TripConnectionGtfs(
     val departureStopId: String,
     val arrivalStopId: String,
+    val departureStopArrivalTime: UInt,
     val departureStopDepartureTime: UInt,
     val arrivalStopArrivalTime: UInt,
+    val arrivalStopDepartureTime: UInt,
     val tripId: String,
 ) {
     fun convertToTripConnection(departureStop: Stop, arrivalStop: Stop, trip: Trip, id: Int): TripConnection {
         return TripConnection(
             departureStop.id,
             arrivalStop.id,
+            departureStopArrivalTime.toInt(),
             departureStopDepartureTime.toInt(),
             arrivalStopArrivalTime.toInt(),
+            arrivalStopDepartureTime.toInt(),
             trip.id,
             id
         )
@@ -75,3 +81,16 @@ data class RouteGtfs(
         return Route(routeId, shortName, longName, routeType, id)
     }
 }
+
+data class CalendarGtfs(
+    val serviceId: String,
+    val startDate: LocalDate,
+    val endDate: LocalDate,
+    val daysOfWeek: List<Int>
+)
+
+data class CalendarDatesGtfs(
+    val serviceId: String,
+    val date: LocalDate,
+    val exceptionType: Int
+)

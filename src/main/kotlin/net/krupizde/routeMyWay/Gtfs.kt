@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.io.InputStream
+import java.time.LocalDate
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.zip.ZipInputStream
 import javax.transaction.Transactional
@@ -14,6 +15,7 @@ import kotlin.math.acos
 import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.sin
+import kotlin.streams.asSequence
 
 @Service
 class Gtfs(
@@ -24,7 +26,8 @@ class Gtfs(
     private val routeService: RouteService,
     private val locationTypeService: LocationTypeService,
     private val routeTypeService: RouteTypeService,
-    private val dataCache: DataCache,
+    private val serviceDayService: ServiceDayService,
+    private val dataProvider: DataProvider,
     @Value("\${parser.maxDurationFootPathsMinutes:30}") private val maxDurationFootPathsMinutes: Int,
     @Value("\${parser.generateFootPathsFromStops:false}") private val generateFootPathsFromStops: Boolean
 ) {
@@ -39,6 +42,8 @@ class Gtfs(
         var trips: List<TripGtfs> = listOf();
         var pathWays: Set<FootPathGtfs> = setOf();
         var stopTimeGtfs: List<StopTimeGtfs> = listOf();
+        var calendarGtfs: List<CalendarGtfs> = listOf()
+        var calendarDatesGtfs: List<CalendarDatesGtfs> = listOf()
         logger.info("Starting parsing GTFS Zip file")
         while (zipEntry != null) {
             logger.info("Unzipped file ${zipEntry.name}")
@@ -48,27 +53,32 @@ class Gtfs(
                 "stop_times.txt" -> stopTimeGtfs = parseStopTimes(zis)
                 "trips.txt" -> trips = parseTrips(zis)
                 "pathways.txt" -> pathWays = parsePathWays(zis)
+                "calendar.txt" -> calendarGtfs = parseCalendars(zis)
+                "calendar_dates.txt" -> calendarDatesGtfs = parseCalendarDates(zis)
             }
             zipEntry = zis.nextEntry;
         }
         zis.close()
         val tripConnections = convertGtfsToConnections(stopTimeGtfs)
-        saveAll(stops, routes, trips, pathWays, tripConnections)
+        val serviceDays = generateServiceDays(calendarGtfs, calendarDatesGtfs)
+        saveAll(stops, routes, trips, pathWays, tripConnections, serviceDays)
         logger.info("Finished parsing and saving data")
-        dataCache.reloadData()
+        dataProvider.reloadData()
         logger.info("Loaded cache")
     }
 
+    @Transactional
     protected fun saveAll(
         stopsGtfs: List<StopGtfs>,
         routesGtfs: List<RouteGtfs>,
         tripsGtfs: List<TripGtfs>,
         pathWaysGtfs: Set<FootPathGtfs>,
-        tripConnectionsGtfs: List<TripConnectionGtfs>
+        tripConnectionsGtfs: List<TripConnectionGtfs>,
+        serviceDays: List<ServiceDay>
     ) {
         val locationTypes = createLocationTypes()
         val routeTypes = createRouteTypes()
-        
+
         logger.info("Saving stops")
         val stops =
             stopService.saveAll(stopsGtfs.mapIndexed { index, it ->
@@ -80,17 +90,24 @@ class Gtfs(
             it.convertToRoute(routeTypes.getValue(it.routeTypeId), index)
         }).associateBy { it.routeId }
 
-        logger.info("Saving trips")
-        val trips = tripService.saveAll(tripsGtfs.mapIndexed { index, it ->
-            it.convertToTrip(routes.getValue(it.routeId), index)
-        }).associateBy { it.tripId }
+        logger.info("Saving service days")
+        val serviceDays = serviceDayService.saveAll(serviceDays)
 
-        logger.info("Saving trip connections")
-        tripConnectionsService.saveAll(tripConnectionsGtfs.mapIndexed { index, it ->
-            it.convertToTripConnection(
-                stops.getValue(it.departureStopId), stops.getValue(it.arrivalStopId), trips.getValue(it.tripId), index
-            )
+        logger.info("Saving trips")
+        val savedTrips = tripService.saveAll(tripsGtfs.mapIndexed { index, it ->
+            it.convertToTrip(routes.getValue(it.routeId), index)
         })
+        val tripsById = savedTrips.associateBy { it.tripId }
+        logger.info("Saving trip connections")
+        runBlocking {
+            tripConnectionsGtfs.mapIndexed { index, it ->
+                it.convertToTripConnection(
+                    stops.getValue(it.departureStopId), stops.getValue(it.arrivalStopId), tripsById.getValue(it.tripId),
+                    index
+                )
+            }.forEach { launch(Dispatchers.IO) { tripConnectionsService.save(it) } }
+        }
+
         if (generateFootPathsFromStops)
             runBlocking { generateAllPathWays(stops.values.toList()) }
 
@@ -117,6 +134,26 @@ class Gtfs(
         locationTypeService.deleteAll()
     }
 
+    private fun generateServiceDays(
+        calendarGtfs: List<CalendarGtfs>,
+        calendarDatesGtfs: List<CalendarDatesGtfs>
+    ): List<ServiceDay> {
+        val mapCalendarDates = mutableMapOf<String, MutableSet<CalendarDatesGtfs>>()
+        calendarDatesGtfs.forEach {
+            mapCalendarDates.getOrPut(it.serviceId) { mutableSetOf() }.add(it)
+        }
+        var serviceDayId = 1
+        val out = calendarGtfs.flatMap { calendar ->
+            calendar.startDate.datesUntil(calendar.endDate.plusDays(1)).map { date ->
+                val calendarDate = mapCalendarDates[calendar.serviceId]?.find { it.date == date }?.exceptionType
+                val willGo =
+                    if (calendarDate == null) calendar.daysOfWeek[date.dayOfWeek.value - 1] == 1 else calendarDate == 1
+                ServiceDay(calendar.serviceId, date, willGo, serviceDayId++)
+            }.asSequence().toList()
+        }
+        return out;
+    }
+
     private suspend fun generateAllPathWays(stops: List<Stop>) {
         logger.info("Starting generating pathways between stops")
         val index = AtomicInteger();
@@ -128,13 +165,13 @@ class Gtfs(
                     for (y in i until stops.size) {
                         var distanceInKm = distanceInKm(stops[i], stops[y])
                         if (distanceInKm < 0) continue
-                        distanceInKm *= 1.5
+                        distanceInKm *= 1.65
                         val duration =
                             if (stops[i].stopId == stops[y].stopId) 0 else ceil((distanceInKm / 5) * 60).toInt()
                         if (duration > maxDurationFootPathsMinutes) continue
                         outPathWays.add(FootPath(stops[i].id, stops[y].id, duration))
                     }
-                    logger.debug("Finished generating from $i. Generated ${outPathWays.size} footConnections.Saving to DB")
+                    logger.debug("Finished generating from $i. Generated ${outPathWays.size} footConnections. Saving to DB")
                     withContext(Dispatchers.IO) {
                         footTripConnectionsService.saveAll(outPathWays)
                         logger.debug("Finished saving from $i")
@@ -202,11 +239,8 @@ class Gtfs(
             if (prevStopTime.tripId == stopTime.tripId) {
                 tripConnections.add(
                     TripConnectionGtfs(
-                        prevStopTime.stopId,
-                        stopTime.stopId,
-                        prevStopTime.departureTime,
-                        stopTime.arrivalTime,
-                        stopTime.tripId
+                        prevStopTime.stopId, stopTime.stopId, prevStopTime.arrivalTime,
+                        prevStopTime.departureTime, stopTime.arrivalTime, stopTime.departureTime, stopTime.tripId
                     )
                 )
             }
@@ -296,6 +330,58 @@ class Gtfs(
         }
         logger.info("Finished parsing GTFS stops.txt")
         return output;
+    }
+
+    private fun parseCalendarDates(zis: ZipInputStream): List<CalendarDatesGtfs> {
+        logger.info("Parsing GTFS calendar_dates.txt")
+        val reader = zis.bufferedReader(charset = Charsets.UTF_8)
+        val rows: List<Map<String, String>> = csvReader().readAllWithHeader(reader.readText())
+        val output = mutableListOf<CalendarDatesGtfs>();
+        for (calendarDate in rows) {
+            output.add(
+                CalendarDatesGtfs(
+                    calendarDate.getValue("service_id"),
+                    parseDate(calendarDate.getValue("date")),
+                    calendarDate.getValue("exception_type").toInt()
+                )
+            )
+        }
+        logger.info("Finished parsing GTFS calendar_dates.txt")
+        return output;
+    }
+
+    private fun parseCalendars(zis: ZipInputStream): List<CalendarGtfs> {
+        logger.info("Parsing GTFS calendar.txt")
+        val reader = zis.bufferedReader(charset = Charsets.UTF_8)
+        val rows: List<Map<String, String>> = csvReader().readAllWithHeader(reader.readText())
+        val output = mutableListOf<CalendarGtfs>();
+        for (calendar in rows) {
+            output.add(
+                CalendarGtfs(
+                    calendar.getValue("service_id"),
+                    parseDate(calendar.getValue("start_date")),
+                    parseDate(calendar.getValue("end_date")),
+                    listOf(
+                        calendar.getValue("monday").toInt(),
+                        calendar.getValue("tuesday").toInt(),
+                        calendar.getValue("wednesday").toInt(),
+                        calendar.getValue("thursday").toInt(),
+                        calendar.getValue("friday").toInt(),
+                        calendar.getValue("saturday").toInt(),
+                        calendar.getValue("sunday").toInt()
+                    )
+                )
+            )
+        }
+        logger.info("Finished parsing GTFS calendar.txt")
+        return output;
+    }
+
+    fun parseDate(date: String): LocalDate {
+        val year = date.substring(0, 4).toInt()
+        val month = date.substring(4, 6).toInt()
+        val day = date.substring(6, 8).toInt()
+        return LocalDate.of(year, month, day)
     }
 
     private fun parsePathWays(zis: ZipInputStream): Set<FootPathGtfs> {

@@ -31,6 +31,11 @@ abstract class GeneralService<Entity : Any, Id : Any,
     }
 
     @Transactional
+    open fun findById(id: Id): Entity? {
+        return repository.findById(id)
+    }
+
+    @Transactional
     open fun findAllByIds(ids: List<Id>): List<Entity> {
         return repository.findAllByIds(ids)
     }
@@ -39,25 +44,29 @@ abstract class GeneralService<Entity : Any, Id : Any,
 @Service
 class TripConnectionsService(val tripConnectionLightRepository: TripConnectionLightRepository) :
     GeneralService<TripConnection, Int, TripConnectionRepository>() {
-    fun findAllLight(): List<TripConnection> {
+    fun findAllLight(): List<TripConnectionBase> {
         return tripConnectionLightRepository.findAll()
     }
 }
 
 @Service
 class StopService(val stopLightRepository: StopLightRepository) : GeneralService<Stop, Int, StopRepository>() {
-    fun findAllLight(): List<StopLight> {
+    fun findAllLight(): List<StopBase> {
         return stopLightRepository.findAll()
     }
 
     fun findByStopId(stopId: String): Stop? {
         return repository.findByStopId(stopId)
     }
+
+    fun findAllByName(name:String):List<Stop>{
+        return repository.findAllByName(name)
+    }
 }
 
 @Service
 class TripService(val tripLightRepository: TripLightRepository) : GeneralService<Trip, Int, TripRepository>() {
-    fun findAllLight(): List<TripLight> {
+    fun findAllLight(): List<TripBase> {
         return tripLightRepository.findAll()
     }
 }
@@ -73,3 +82,6 @@ class RouteService() : GeneralService<Route, Int, RouteRepository>();
 
 @Service
 class RouteTypeService() : GeneralService<RouteType, Int, RouteTypeRepository>();
+
+@Service
+class ServiceDayService() : GeneralService<ServiceDay, Int, ServiceDayRepository>();

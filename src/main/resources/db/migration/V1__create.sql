@@ -1,33 +1,36 @@
 create table locationType
 (
-    locationTypeId identity not null primary key,
-    name           varchar  not null
+    locationTypeId integer not null primary key,
+    name           varchar not null
 );
 
 create table routeType
 (
-    routeTypeId identity not null primary key,
-    name        varchar  not null
+    routeTypeId integer not null primary key,
+    name        varchar not null
 );
 
 create table route
 (
-    id          identity not null primary key,
-    routeId     varchar  not null,
+    id          integer not null primary key,
+    routeId     varchar not null,
     shortName   varchar,
     longName    varchar,
-    routeTypeId integer  not null
+    routeTypeId integer not null
 );
+
+alter table route
+    add foreign key (routeTypeId) references routeType (routeTypeId);
 
 create table stop
 (
-    id                 identity not null primary key,
-    stopId             varchar  not null,
+    id                 integer not null primary key,
+    stopId             varchar not null,
     name               varchar,
     latitude           float,
     longitude          float,
-    locationTypeId     int,
-    wheelChairBoarding int
+    locationTypeId     integer,
+    wheelChairBoarding integer
 );
 
 alter table stop
@@ -35,57 +38,66 @@ alter table stop
 
 create table trip
 (
-    id                   identity not null primary key,
-    tripId               varchar  not null,
-    routeId              integer  not null,
-    serviceId            varchar  not null,
+    id                   integer not null primary key,
+    tripId               varchar not null,
+    routeId              integer not null,
+    serviceId            varchar not null,
     tripHeadSign         varchar,
     tripShortName        varchar,
-    wheelChairAccessible int,
-    bikesAllowed         int
+    wheelChairAccessible integer,
+    bikesAllowed         integer
 );
 
 alter table trip
     add foreign key (routeId) references route (id);
 
-alter table route
-    add foreign key (routeTypeId) references routeType (routeTypeId);
+create table serviceDay
+(
+    id         integer not null primary key,
+    serviceDay date,
+    willGo     boolean
+);
+
+create table serviceDayTrip
+(
+    idServiceDay integer not null,
+    idTrip       integer not null,
+    primary key (idServiceDay, idTrip)
+);
+
+alter table serviceDayTrip
+    add foreign key (idServiceDay) references serviceDay (id);
+alter table serviceDayTrip
+    add foreign key (idTrip) references trip (id);
 
 create table footPath
 (
     departureStopId integer not null,
     arrivalStopId   integer not null,
-    duration        int     not null,
+    duration        integer not null,
     PRIMARY KEY (departureStopId, arrivalStopId)
 );
 
 alter table footPath
-    ADD FOREIGN KEY (departureStopId)
-        REFERENCES stop (id);
-
+    ADD FOREIGN KEY (departureStopId) REFERENCES stop (id);
 alter table footPath
-    ADD FOREIGN KEY (arrivalStopId)
-        REFERENCES stop (id);
+    ADD FOREIGN KEY (arrivalStopId) REFERENCES stop (id);
 
--- Table defined for H2, needs to change id IDENTITY for other RDBMS
 create table tripConnection
 (
-    tripConnectionId identity not null primary key,
-    departureStopId  integer  not null,
-    arrivalStopId    integer  not null,
-    tripId           integer  not null,
-    departureTime    integer  not null,
-    arrivalTime      integer  not null
+    tripConnectionId           integer not null primary key,
+    departureStopId            integer not null,
+    arrivalStopId              integer not null,
+    tripId                     integer not null,
+    departureStopArrivalTime   integer not null,
+    departureStopDepartureTime integer not null,
+    arrivalStopArrivalTime     integer not null,
+    arrivalStopDepartureTime   integer not null
 );
 
 alter table tripConnection
-    ADD FOREIGN KEY (departureStopId)
-        REFERENCES stop (id);
-
+    ADD FOREIGN KEY (departureStopId) REFERENCES stop (id);
 alter table tripConnection
-    ADD FOREIGN KEY (arrivalStopId)
-        REFERENCES stop (id);
-
+    ADD FOREIGN KEY (arrivalStopId) REFERENCES stop (id);
 alter table tripConnection
-    ADD FOREIGN KEY (tripId)
-        REFERENCES trip (id);
+    ADD FOREIGN KEY (tripId) REFERENCES trip (id);

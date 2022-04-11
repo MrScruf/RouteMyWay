@@ -4,6 +4,7 @@ plugins {
     id("org.springframework.boot") version "2.6.3"
     id("io.spring.dependency-management") version "1.0.11.RELEASE"
     kotlin("jvm") version "1.6.10"
+    kotlin("plugin.serialization") version "1.6.10"
     kotlin("plugin.spring") version "1.6.10"
     kotlin("plugin.jpa") version "1.6.10"
 }
@@ -26,13 +27,20 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
     implementation("com.github.doyaaaaaken:kotlin-csv-jvm:1.2.0")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
-    implementation("org.flywaydb:flyway-core:8.5.0")
+    implementation("org.flywaydb:flyway-core:8.5.2")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib")
+    implementation("io.ktor:ktor-client-core:1.6.7")
+    implementation("io.ktor:ktor-client-cio:1.6.7")
+    implementation("io.ktor:ktor-client-jackson:1.6.7")
     //runtimeOnly("org.postgresql:postgresql")
     // https://mvnrepository.com/artifact/com.h2database/h2
     implementation("com.h2database:h2:2.1.210")
 
+// https://mvnrepository.com/artifact/junit/junit
+    testImplementation("junit:junit:4.13.2")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("io.projectreactor:reactor-test")

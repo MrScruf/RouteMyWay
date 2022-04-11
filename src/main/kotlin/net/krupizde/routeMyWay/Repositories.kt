@@ -1,8 +1,11 @@
 package net.krupizde.routeMyWay
 
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Repository
 import javax.persistence.EntityManager
 import javax.persistence.PersistenceContext
@@ -10,22 +13,25 @@ import javax.persistence.PersistenceContext
 @Repository
 interface TripConnectionJpaRepository : JpaRepository<TripConnection, Int>;
 @Repository
-interface TripConnectionLightJpaRepository : JpaRepository<TripConnection, Int>;
+interface TripConnectionLightJpaRepository : JpaRepository<TripConnectionBase, Int>;
 @Repository
 interface StopJpaRepository : JpaRepository<Stop, Int> {
     fun findByStopId(stopId: String): Stop?;
+
+    @Query("select max(s.id) from Stop s group by s.name having upper(s.name) like upper(?1)")
+    fun findByDistinctName(name: String, pageable: Pageable): List<Int>
 }
 
 @Repository
 interface TripJpaRepository : JpaRepository<Trip, Int>;
 
 @Repository
-interface StopLightJpaRepository : JpaRepository<StopLight, Int>;
+interface StopLightJpaRepository : JpaRepository<StopBase, Int>;
 
 @Repository
-interface TripLightJpaRepository : JpaRepository<TripLight, Int> {
+interface TripLightJpaRepository : JpaRepository<TripBase, Int> {
     @Query("select new TripLight(tl.id, tl.wheelChairAccessible, tl.bikesAllowed, r.routeTypeId.routeTypeId) from Trip tl inner join Route r on r.id = tl.routeId")
-    fun findAllMapping(): List<TripLight>;
+    fun findAllMapping(): List<TripBase>;
 }
 
 @Repository
@@ -39,6 +45,9 @@ interface RouteJpaRepository : JpaRepository<Route, Int>;
 
 @Repository
 interface RouteTypeJpaRepository : JpaRepository<RouteType, Int>;
+
+@Repository
+interface ServiceDayJpaRepository : JpaRepository<ServiceDay, Int>;
 
 abstract class GeneralRepository<Entity : Any, Id : Any, Repository : JpaRepository<Entity, Id>>() {
     @PersistenceContext
@@ -63,25 +72,19 @@ abstract class GeneralRepository<Entity : Any, Id : Any, Repository : JpaReposit
         return jpaRepository.findAll()
     }
 
+    open fun findById(id: Id): Entity? {
+        return jpaRepository.findByIdOrNull(id)
+    }
+
     open fun findAllByIds(ids: List<Id>): List<Entity> {
         return jpaRepository.findAllById(ids)
     }
+
+
 }
 
 @Repository
 class TripConnectionRepository() : GeneralRepository<TripConnection, Int, TripConnectionJpaRepository>() {
-    /*override fun save(tripConnection: TripConnection): TripConnection {
-        val query = entityManager.createNativeQuery(
-            "INSERT INTO tripConnection (departureStopId,arrivalStopId,tripId,departureTime,arrivalTime)" +
-                    " VALUES (:departureStopId,:arrivalStopId,:tripId,:departureTime,:arrivalTime)"
-        )
-        query.setParameter("departureStopId", tripConnection.departureStopId)
-        query.setParameter("arrivalStopId", tripConnection.arrivalStopId)
-        query.setParameter("tripId", tripConnection.tripId)
-        query.setParameter("departureTime", tripConnection.departureTimeDb)
-        query.setParameter("arrivalTime", tripConnection.arrivalTimeDb)
-        query.executeUpdate()
-    }*/
 }
 
 @Repository
@@ -89,24 +92,28 @@ class StopRepository() : GeneralRepository<Stop, Int, StopJpaRepository>() {
     fun findByStopId(stopId: String): Stop? {
         return jpaRepository.findByStopId(stopId)
     }
+
+    fun findAllByName(name: String): List<Stop> {
+        return jpaRepository.findAllById(jpaRepository.findByDistinctName("%${name}%", PageRequest.of(0, 10)));
+    }
 }
 
 @Repository
 class TripRepository() : GeneralRepository<Trip, Int, TripJpaRepository>();
 @Repository
-class StopLightRepository() : GeneralRepository<StopLight, Int, StopLightJpaRepository>();
+class StopLightRepository() : GeneralRepository<StopBase, Int, StopLightJpaRepository>();
 
 @Repository
-class TripLightRepository() : GeneralRepository<TripLight, Int, TripLightJpaRepository>() {
-    override fun findAll(): List<TripLight> {
+class TripLightRepository() : GeneralRepository<TripBase, Int, TripLightJpaRepository>() {
+    override fun findAll(): List<TripBase> {
         return jpaRepository.findAllMapping()
     }
 }
 
 @Repository
 class TripConnectionLightRepository() :
-    GeneralRepository<TripConnection, Int, TripConnectionLightJpaRepository>() {
-    override fun findAll(): List<TripConnection> {
+    GeneralRepository<TripConnectionBase, Int, TripConnectionLightJpaRepository>() {
+    override fun findAll(): List<TripConnectionBase> {
         return jpaRepository.findAll()
     }
 }
@@ -122,3 +129,6 @@ class RouteRepository() : GeneralRepository<Route, Int, RouteJpaRepository>();
 
 @Repository
 class RouteTypeRepository() : GeneralRepository<RouteType, Int, RouteTypeJpaRepository>();
+
+@Repository
+class ServiceDayRepository() : GeneralRepository<ServiceDay, Int, ServiceDayJpaRepository>();

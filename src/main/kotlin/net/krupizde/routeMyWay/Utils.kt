@@ -1,5 +1,6 @@
 package net.krupizde.routeMyWay
 
+import java.time.LocalTime
 import kotlin.math.floor
 
 class Utils {
@@ -20,6 +21,10 @@ class Utils {
             return generateTime(time.hour, time.minute, time.second)
         }
 
+        fun generateTime(time: LocalTime): UInt {
+            return generateTime(time.hour, time.minute, time.second)
+        }
+
         fun addTransferToTime(time: UInt): UInt {
             if (time == UInt.MAX_VALUE) return UInt.MAX_VALUE
             return (time + 256u)
@@ -33,7 +38,7 @@ class Utils {
         }
 
         fun addMinutesToTime(time: UInt, minutes: Int): UInt {
-            if (minutes == Int.MAX_VALUE) return UInt.MAX_VALUE
+            if (minutes == Int.MAX_VALUE || time == UInt.MAX_VALUE) return UInt.MAX_VALUE
             return addSecondsToTime(time, minutes.toUInt() * 60u)
         }
 
@@ -68,7 +73,7 @@ class Utils {
         }
 
         fun timeToMinutes(time: UInt): Double {
-            return (time / 60u).toDouble();
+            return (time.toDouble() / 60);
         }
     }
 }
