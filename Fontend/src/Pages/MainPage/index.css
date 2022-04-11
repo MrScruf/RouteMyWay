@@ -1,0 +1,36 @@
+#main{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: white;
+    width: 100%;
+    padding: 1em;
+}
+#main form{
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    padding: 0.6rem;
+}
+#main form input[type="search"]{
+    font-size: 1.5rem;
+    margin-right: 1rem;
+}
+#main form button{
+    padding-left: 1rem;
+    padding-right: 1rem;
+    font-size: 1.5em;
+}
+body{
+    padding: 5rem;
+}
+.search{
+    display: flex;
+    flex-direction: column;
+}
+#sendButton{
+    max-height: 2rem;
+}
+.dateTimePicker{
+    height: 1.8rem;
+}

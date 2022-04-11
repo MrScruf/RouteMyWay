@@ -4,11 +4,10 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
+import java.util.*
 import kotlin.math.ceil
 import kotlin.math.min
 
-//TODO - Přepsat na csa profile (Priorita na zítra)
-//TODO - Refactoring, sestavování cesty udělat rozumněji
 @Service
 class CSA(
     private val dataProvider: DataProvider,
@@ -154,14 +153,53 @@ class CSA(
         durationsToTarget: Map<Int, Int>, numberOfPaths: Int = 1
     ): List<Path> {
         val output = mutableListOf<Path>()
+        var departureTimeTmp = departureTime
         repeat(numberOfPaths) {
-            val outStops = setOf<Stop>()
-            val outTrips = setOf<Trip>()
-            val outRoutes = setOf<Route>()
-            val outConnections = listOf<Connection>()
-            output.add(Path(outStops, outTrips, outRoutes, outConnections))
+            val path = extractOnePath(profiles, departureStopId, arrivalStopId, departureTimeTmp, durationsToTarget)
+            val firstConnection = path.connections.first()
+            if (firstConnection is TripConnectionBase)
+                departureTimeTmp = Utils.addSecondsToTime(firstConnection.departureTime, 1u)
+            output.add(path)
         }
         return output
+    }
+
+    fun extractOnePath(
+        profiles: Map<Int, ParetoProfile>, departureStopId: Int, arrivalStopId: Int, departureTime: UInt,
+        durationsToTarget: Map<Int, Int>
+    ): Path {
+        val outStops = mutableSetOf<Stop>()
+        val outTrips = mutableSetOf<Trip>()
+        val outRoutes = mutableSetOf<Route>()
+        val outConnections = LinkedList<Connection>()
+        var departureStopIdTmp = departureStopId
+        var departureTimeTmp = departureTime
+        do {
+            val durationDirectly = durationsToTarget.getValue(departureStopIdTmp).toDouble()
+            val profile = profiles[departureStopIdTmp]?.profiles?.first { it.departureTime >= departureTimeTmp }
+                ?: error("Non-existent path")
+            val tripLength = Utils.timeToMinutes(Utils.timeMinusTime(profile.arrivalTime, profile.departureTime))
+            if (tripLength > durationDirectly) {
+                outConnections.add(FootPath(departureStopIdTmp, arrivalStopId, durationDirectly.toInt()))
+                break;
+            }
+            val enterConnection = profile.enterConnection
+            val exitConnection = profile.exitConnection
+            departureStopIdTmp = exitConnection?.arrivalStopId ?: error("Non-existent path");
+            departureTimeTmp = exitConnection.arrivalTime
+            outStops.add(stopService.findById(enterConnection.departureStopId) ?: error("Non-existent stop"))
+            outStops.add(stopService.findById(exitConnection.arrivalStopId) ?: error("Non-existent stop"))
+            outTrips.add(tripService.findById(enterConnection.tripId) ?: error("Non-existent trip"))
+            outRoutes.add(routeService.findById(outTrips.last().routeId) ?: error("Non-existent route"))
+            outConnections.add(
+                TripConnectionBase(
+                    enterConnection.departureStopId, exitConnection.arrivalStopId,
+                    enterConnection.departureStopDepartureTime, exitConnection.arrivalStopArrivalTime,
+                    enterConnection.tripId
+                )
+            )
+        } while (exitConnection?.arrivalStopId != arrivalStopId)
+        return Path(outStops, outTrips, outRoutes, outConnections)
     }
 
     fun extractConnections(

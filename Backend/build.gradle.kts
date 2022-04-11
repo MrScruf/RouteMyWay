@@ -58,4 +58,7 @@ tasks.withType<KotlinCompile> {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+    minHeapSize = "512m"
+    maxHeapSize = "1536m"
+    jvmArgs = listOf("-XX:MaxPermSize=512m")
 }

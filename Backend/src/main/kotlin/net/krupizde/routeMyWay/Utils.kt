@@ -26,7 +26,7 @@ class Utils {
             return (time + 256u)
         }
 
-        private fun addSecondsToTime(time: UInt, seconds: UInt): UInt {
+        fun addSecondsToTime(time: UInt, seconds: UInt): UInt {
             val timeFull = extractTimeUint(time)
             val outTime = timeFull + seconds
             val transfers = time and 7936u
