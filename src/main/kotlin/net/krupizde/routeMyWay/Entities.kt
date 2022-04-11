@@ -74,19 +74,19 @@ data class FootPathId(
 @Entity
 @Table(name = "stop")
 open class StopBase(
-    @Id @Column(name = "id") val id: Int,
-    val wheelChairBoarding: Int?
+    @Id @Column(name = "id") open val id: Int,
+    open val wheelChairBoarding: Int?
 )
 
 @Entity
-class Stop(
+data class Stop(
     val stopId: String,
     val name: String?,
     val latitude: Double?,
     val longitude: Double?,
     @ManyToOne @JoinColumn(name = "locationTypeId") val locationType: LocationType,
-    wheelChairBoarding: Int?,
-    id: Int = 0
+    override val wheelChairBoarding: Int?,
+    override val id: Int = 0
 ) : StopBase(id, wheelChairBoarding);
 
 @Entity
@@ -95,22 +95,22 @@ data class LocationType(@Id val locationTypeId: Int, val name: String)
 @Entity
 @Table(name = "trip")
 open class TripBase(
-    @Id val id: Int,
-    val wheelChairAccessible: Int?,
-    val bikesAllowed: Int?,
+    @Id open val id: Int,
+    open val wheelChairAccessible: Int?,
+    open val bikesAllowed: Int?,
     val routeTypeId: Int = -1
 )
 
 @Entity
-class Trip(
+data class Trip(
     val tripId: String,
     val serviceId: String,
     val routeId: Int,
     val tripHeadSign: String?,
     val tripShortName: String?,
-    wheelChairAccessible: Int?,
-    bikesAllowed: Int?,
-    id: Int = 0
+    override val wheelChairAccessible: Int?,
+    override val bikesAllowed: Int?,
+    override val id: Int = 0
 ) : TripBase(id, wheelChairAccessible, bikesAllowed);
 
 

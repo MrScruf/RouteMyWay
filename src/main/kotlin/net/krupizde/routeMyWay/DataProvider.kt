@@ -26,10 +26,10 @@ class DataProvider(
         date: LocalDate,
         bikesAllowed: Boolean = false, wheelChairAccessible: Boolean = false, vehiclesAllowed: Set<Int>? = null
     ) = baseTripConnections.asReversed().asSequence().filter {
-        !((vehiclesAllowed != null && !vehiclesAllowed.contains(baseTrips[it.tripId]?.routeTypeId))) ||
-                (bikesAllowed && baseTrips[it.tripId]?.bikesAllowed != 1) ||
-                (wheelChairAccessible && baseTrips[it.tripId]?.wheelChairAccessible != 1)
-    }.filter { true }
+        (vehiclesAllowed == null || vehiclesAllowed.contains(baseTrips[it.tripId]?.routeTypeId)) &&
+                (!bikesAllowed || baseTrips[it.tripId]?.bikesAllowed == 1) &&
+                (!wheelChairAccessible || baseTrips[it.tripId]?.wheelChairAccessible == 1)
+    }.filter { true }//TODO - callendar dates filtering
 
     @Synchronized
     fun reloadData() {

@@ -58,18 +58,6 @@ create table serviceDay
     willGo     boolean
 );
 
-create table serviceDayTrip
-(
-    idServiceDay integer not null,
-    idTrip       integer not null,
-    primary key (idServiceDay, idTrip)
-);
-
-alter table serviceDayTrip
-    add foreign key (idServiceDay) references serviceDay (id);
-alter table serviceDayTrip
-    add foreign key (idTrip) references trip (id);
-
 create table footPath
 (
     departureStopId integer not null,

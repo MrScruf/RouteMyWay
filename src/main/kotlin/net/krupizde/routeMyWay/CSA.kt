@@ -61,8 +61,24 @@ class CSA(
     }
 
     fun findShortestPathCSAProfile(
+        departureStopId: String, arrivalStopId: String, departureDateTime: LocalDateTime,
+        bikesAllowed: Boolean = false, wheelChairAccessible: Boolean = false, vehiclesAllowed: Set<Int>? = null,
+        numberOfPaths: Int = 1
+    ): List<Path> {
+        val departureStopIntId =
+            stopService.findByStopId(departureStopId)?.id ?: error("Non-existent stop $departureStopId")
+        val arrivalStopIntId =
+            stopService.findByStopId(arrivalStopId)?.id ?: error("Non-existent stop $arrivalStopId")
+        return findShortestPathCSAProfile(
+            departureStopIntId, arrivalStopIntId, departureDateTime, bikesAllowed, wheelChairAccessible,
+            vehiclesAllowed, numberOfPaths
+        )
+    }
+
+    fun findShortestPathCSAProfile(
         departureStopId: Int, arrivalStopId: Int, departureDateTime: LocalDateTime,
-        bikesAllowed: Boolean = false, wheelChairAccessible: Boolean = false, vehiclesAllowed: Set<Int>? = null
+        bikesAllowed: Boolean = false, wheelChairAccessible: Boolean = false, vehiclesAllowed: Set<Int>? = null,
+        numberOfPaths: Int = 1
     ): List<Path> {
         val connections = dataProvider.getTripConnectionsReversed(
             departureDateTime.toLocalDate(), bikesAllowed, wheelChairAccessible, vehiclesAllowed
@@ -75,22 +91,25 @@ class CSA(
         val profiles = computeProfiles(
             connections, durationsToTarget, departureStopId, arrivalStopId, departureTimeUint, wheelChairAccessible
         )
-        return buildPaths(profiles, departureStopId, arrivalStopId, departureTimeUint, durationsToTarget);
+        return buildPaths(
+            profiles, departureStopId, arrivalStopId, departureTimeUint, durationsToTarget, numberOfPaths
+        );
     }
 
 
     fun computeProfiles(
         connections: Sequence<TripConnectionBase>, durationsToTarget: Map<Int, Int>, departureStopId: Int,
-        arrivalStopId: Int, departureDateTime: UInt, wheelChairAccessible: Boolean = false
+        arrivalStopId: Int, departureTime: UInt, wheelChairAccessible: Boolean = false
 
     ): Map<Int, ParetoProfile> {
         val visitedStops = mutableMapOf<Int, ParetoProfile>().withDefault { ParetoProfile() }
         val visitedTrips = mutableMapOf<Int, Pair<UInt, TripConnectionBase?>>().withDefault {
             Pair(UInt.MAX_VALUE, null)
         }
-        val reachableTrips = query(departureStopId, arrivalStopId, departureDateTime)
+        val reachableTrips = query(departureStopId, arrivalStopId, departureTime)
         for (connection in connections) {
             if (!reachableTrips.contains(connection.tripId)) continue
+            if (connection.departureTime < departureTime) break;
             val trip = visitedTrips[connection.tripId]
             val arrivalTimeWhenWalking =
                 Utils.addMinutesToTime(connection.arrivalTime, durationsToTarget.getValue(connection.arrivalStopId));
