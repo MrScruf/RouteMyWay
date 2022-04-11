@@ -91,11 +91,11 @@ class Gtfs(
         }).associateBy { it.routeId }
 
         logger.info("Saving service days")
-        val serviceDays = serviceDayService.saveAll(serviceDays)
+        val serviceDaysSaved = serviceDayService.saveAll(serviceDays).associateBy { it.serviceId }
 
         logger.info("Saving trips")
         val savedTrips = tripService.saveAll(tripsGtfs.mapIndexed { index, it ->
-            it.convertToTrip(routes.getValue(it.routeId), index)
+            it.convertToTrip(routes.getValue(it.routeId), index, serviceDaysSaved.getValue(it.serviceId).serviceIdInt)
         })
         val tripsById = savedTrips.associateBy { it.tripId }
         logger.info("Saving trip connections")
@@ -139,16 +139,21 @@ class Gtfs(
         calendarDatesGtfs: List<CalendarDatesGtfs>
     ): List<ServiceDay> {
         val mapCalendarDates = mutableMapOf<String, MutableSet<CalendarDatesGtfs>>()
+        val serviceIdsMapping = mutableMapOf<String, Int>()
         calendarDatesGtfs.forEach {
             mapCalendarDates.getOrPut(it.serviceId) { mutableSetOf() }.add(it)
         }
         var serviceDayId = 1
+        var serviceId = 1
         val out = calendarGtfs.flatMap { calendar ->
             calendar.startDate.datesUntil(calendar.endDate.plusDays(1)).map { date ->
                 val calendarDate = mapCalendarDates[calendar.serviceId]?.find { it.date == date }?.exceptionType
                 val willGo =
                     if (calendarDate == null) calendar.daysOfWeek[date.dayOfWeek.value - 1] == 1 else calendarDate == 1
-                ServiceDay(calendar.serviceId, date, willGo, serviceDayId++)
+                ServiceDay(
+                    calendar.serviceId, serviceIdsMapping.getOrPut(calendar.serviceId) { serviceId++ }, date, willGo,
+                    serviceDayId++
+                )
             }.asSequence().toList()
         }
         return out;

@@ -17,10 +17,6 @@ class Utils {
             return generateTime(split[0].toInt(), split[1].toInt(), split[2].toInt())
         }
 
-        fun generateTime(time: Time): UInt {
-            return generateTime(time.hour, time.minute, time.second)
-        }
-
         fun generateTime(time: LocalTime): UInt {
             return generateTime(time.hour, time.minute, time.second)
         }
@@ -60,12 +56,12 @@ class Utils {
             return higherBits or lowerBits
         }
 
-        fun extractTime(time: UInt): Time {
+        fun extractTime(time: UInt): LocalTime {
             val uintTime = extractTimeUint(time)
             val minutes = floor(((uintTime / 60u) % 60u).toDouble()).toInt()
             val seconds = (uintTime % 60u).toInt()
             val hours = floor((uintTime / 3600u).toDouble()).toInt()
-            return Time(hours, minutes, seconds)
+            return LocalTime.of(hours, minutes, seconds)
         }
 
         fun timeMinusTime(time1: UInt, time2: UInt): UInt {

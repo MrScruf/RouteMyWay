@@ -30,7 +30,7 @@ interface StopLightJpaRepository : JpaRepository<StopBase, Int>;
 
 @Repository
 interface TripLightJpaRepository : JpaRepository<TripBase, Int> {
-    @Query("select new TripLight(tl.id, tl.wheelChairAccessible, tl.bikesAllowed, r.routeTypeId.routeTypeId) from Trip tl inner join Route r on r.id = tl.routeId")
+    @Query("select new TripBase(tl.id, tl.wheelChairAccessible, tl.bikesAllowed, tl.serviceId, r.routeTypeId.routeTypeId) from Trip tl inner join Route r on r.id = tl.routeId")
     fun findAllMapping(): List<TripBase>;
 }
 
@@ -48,6 +48,9 @@ interface RouteTypeJpaRepository : JpaRepository<RouteType, Int>;
 
 @Repository
 interface ServiceDayJpaRepository : JpaRepository<ServiceDay, Int>;
+
+@Repository
+interface ServiceDayBaseJpaRepository : JpaRepository<ServiceDayBase, Int>;
 
 abstract class GeneralRepository<Entity : Any, Id : Any, Repository : JpaRepository<Entity, Id>>() {
     @PersistenceContext
@@ -101,17 +104,17 @@ class StopRepository() : GeneralRepository<Stop, Int, StopJpaRepository>() {
 @Repository
 class TripRepository() : GeneralRepository<Trip, Int, TripJpaRepository>();
 @Repository
-class StopLightRepository() : GeneralRepository<StopBase, Int, StopLightJpaRepository>();
+class StopBaseRepository() : GeneralRepository<StopBase, Int, StopLightJpaRepository>();
 
 @Repository
-class TripLightRepository() : GeneralRepository<TripBase, Int, TripLightJpaRepository>() {
+class TripBaseRepository() : GeneralRepository<TripBase, Int, TripLightJpaRepository>() {
     override fun findAll(): List<TripBase> {
         return jpaRepository.findAllMapping()
     }
 }
 
 @Repository
-class TripConnectionLightRepository() :
+class TripConnectionBaseRepository() :
     GeneralRepository<TripConnectionBase, Int, TripConnectionLightJpaRepository>() {
     override fun findAll(): List<TripConnectionBase> {
         return jpaRepository.findAll()
@@ -132,3 +135,6 @@ class RouteTypeRepository() : GeneralRepository<RouteType, Int, RouteTypeJpaRepo
 
 @Repository
 class ServiceDayRepository() : GeneralRepository<ServiceDay, Int, ServiceDayJpaRepository>();
+
+@Repository
+class ServiceDayBaseRepository() : GeneralRepository<ServiceDay, Int, ServiceDayJpaRepository>();

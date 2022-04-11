@@ -110,10 +110,10 @@ class CSA(
         for (connection in connections) {
             if (!reachableTrips.contains(connection.tripId)) continue
             if (connection.departureTime < departureTime) break;
-            val trip = visitedTrips[connection.tripId]
+            val trip = visitedTrips.getValue(connection.tripId)
             val arrivalTimeWhenWalking =
                 Utils.addMinutesToTime(connection.arrivalTime, durationsToTarget.getValue(connection.arrivalStopId));
-            val arrivalTimeWhenSeatedOnTrip = trip?.first ?: TODO()
+            val arrivalTimeWhenSeatedOnTrip = trip.first
             val arrivalTimeFromCurrentStop =
                 arrivalTimeFromStop(visitedStops.getValue(connection.arrivalStopId), connection.arrivalTime);
             val minimalArrivalTime =
@@ -130,20 +130,17 @@ class CSA(
         return visitedStops
     }
 
-    fun arrivalTimeFromStop(stopProfile: ParetoProfile, arrivalTime: UInt): UInt {
-        return stopProfile.profiles.find { it.departureTime >= arrivalTime }?.arrivalTime?.let {
-            Utils.addTransferToTime(it)
-        } ?: UInt.MAX_VALUE
-    }
+    fun arrivalTimeFromStop(stopProfile: ParetoProfile, arrivalTime: UInt) =
+        stopProfile.profiles.find { it.departureTime >= arrivalTime }?.arrivalTime
+            ?.let { Utils.addTransferToTime(it) } ?: UInt.MAX_VALUE
 
     fun iterateFootPaths(
         connection: TripConnectionBase, targetTime: UInt, exitConnection: TripConnectionBase?,
         wheelChairAccessible: Boolean, visitedStops: MutableMap<Int, ParetoProfile>
-    ) = dataProvider.footConnections[connection.departureStopId]?.forEach {
-        if (wheelChairAccessible &&
-            (dataProvider.baseStops[it.arrivalStopId]?.wheelChairBoarding != 1 ||
-                    dataProvider.baseStops[it.departureStopId]?.wheelChairBoarding != 1)
-        ) return@forEach
+    ) = dataProvider.footConnections[connection.departureStopId]?.asSequence()?.filter {
+        !wheelChairAccessible || (dataProvider.baseStops[it.arrivalStopId]?.wheelChairBoarding == 1
+                && dataProvider.baseStops[it.departureStopId]?.wheelChairBoarding == 1)
+    }?.forEach {
         visitedStops.getOrPut(it.arrivalStopId) { ParetoProfile() }.add(
             StopProfile(
                 Utils.minusMinutesFromTime(connection.departureTime, it.durationInMinutes), targetTime, connection,

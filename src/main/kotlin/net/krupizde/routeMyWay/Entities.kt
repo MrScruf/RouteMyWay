@@ -2,6 +2,7 @@ package net.krupizde.routeMyWay
 
 import java.io.Serializable
 import java.time.LocalDate
+import java.time.LocalTime
 import javax.persistence.*
 import kotlin.math.max
 
@@ -10,28 +11,31 @@ abstract class Connection(@Transient val name: String = "") {
 
 @Entity
 @Table(name = "serviceDay")
-data class ServiceDay(
-    val serviceId: String,
-    @Column(name = "serviceDay")
-    val day: LocalDate,
-    val willGo: Boolean,
-    @Id val id: Int = -1,
-    val tripId: Int = -1
+open class ServiceDayBase(
+    open val serviceIdInt: Int,
+    @Column(name = "serviceDay") open val day: LocalDate,
+    open val willGo: Boolean,
+    @Id open val id: Int = -1
 )
 
+@Entity
+data class ServiceDay(
+    val serviceId: String,
+    override val serviceIdInt: Int,
+    override val day: LocalDate,
+    override val willGo: Boolean,
+    override val id: Int = -1
+) : ServiceDayBase(serviceIdInt, day, willGo, id)
 
 @Entity
 @Table(name = "tripConnection")
-@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
 open class TripConnectionBase(
-    val departureStopId: Int,
-    val arrivalStopId: Int,
-    @Column(name = "departureStopDepartureTime")
-    val departureStopDepartureTime: Int,
-    @Column(name = "arrivalStopArrivalTime")
-    val arrivalStopArrivalTime: Int,
-    val tripId: Int,
-    @Id val tripConnectionId: Int = 0
+    open val departureStopId: Int,
+    open val arrivalStopId: Int,
+    @Column(name = "departureStopDepartureTime") open val departureStopDepartureTime: Int,
+    @Column(name = "arrivalStopArrivalTime") open val arrivalStopArrivalTime: Int,
+    open val tripId: Int,
+    @Id open val tripConnectionId: Int = 0
 ) : Connection("TripConnection") {
     val departureTime: UInt
         get() = departureStopDepartureTime.toUInt()
@@ -40,7 +44,6 @@ open class TripConnectionBase(
         get() = arrivalStopArrivalTime.toUInt()
 }
 
-//TODO - spoje ne každý den jezdí trip, přidat den
 @Entity
 class TripConnection(
     departureStopId: Int,
@@ -98,20 +101,21 @@ open class TripBase(
     @Id open val id: Int,
     open val wheelChairAccessible: Int?,
     open val bikesAllowed: Int?,
-    val routeTypeId: Int = -1
+    open val serviceId: Int,
+    @Transient open val routeTypeId: Int = -1
 )
 
 @Entity
 data class Trip(
     val tripId: String,
-    val serviceId: String,
+    override val serviceId: Int,
     val routeId: Int,
     val tripHeadSign: String?,
     val tripShortName: String?,
     override val wheelChairAccessible: Int?,
     override val bikesAllowed: Int?,
     override val id: Int = 0
-) : TripBase(id, wheelChairAccessible, bikesAllowed);
+) : TripBase(id, wheelChairAccessible, bikesAllowed, serviceId);
 
 
 @Entity
@@ -128,8 +132,8 @@ data class RouteType(@Id val routeTypeId: Int, val name: String);
 
 data class StopTimeOut(
     val tripId: Int,
-    val departureTime: Time,
-    val arrivalTime: Time,
+    val departureTime: LocalTime,
+    val arrivalTime: LocalTime,
     val stopId: Int,
     val stopSequence: Int
 )
@@ -181,10 +185,4 @@ data class StopProfile(
 ) {
     fun dominates(second: StopProfile): Boolean =
         departureTime >= second.departureTime && arrivalTime <= second.arrivalTime;
-}
-
-data class Time(val hour: Int, val minute: Int, val second: Int) {
-    override fun toString(): String {
-        return "$hour:$minute:$second"
-    }
 }

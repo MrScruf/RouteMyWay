@@ -14,14 +14,8 @@ data class TripConnectionGtfs(
 ) {
     fun convertToTripConnection(departureStop: Stop, arrivalStop: Stop, trip: Trip, id: Int): TripConnection {
         return TripConnection(
-            departureStop.id,
-            arrivalStop.id,
-            departureStopArrivalTime.toInt(),
-            departureStopDepartureTime.toInt(),
-            arrivalStopArrivalTime.toInt(),
-            arrivalStopDepartureTime.toInt(),
-            trip.id,
-            id
+            departureStop.id, arrivalStop.id, departureStopArrivalTime.toInt(), departureStopDepartureTime.toInt(),
+            arrivalStopArrivalTime.toInt(), arrivalStopDepartureTime.toInt(), trip.id, id
         )
     }
 }
@@ -66,8 +60,8 @@ data class TripGtfs(
     val wheelChairAccessible: Int?,
     val bikesAllowed: Int?
 ) {
-    fun convertToTrip(route: Route, id: Int): Trip {
-        return Trip(tripId, serviceId, route.id, tripHeadSign, tripShortName, wheelChairAccessible, bikesAllowed, id)
+    fun convertToTrip(route: Route, id: Int, serviceIdInt: Int): Trip {
+        return Trip(tripId, serviceIdInt, route.id, tripHeadSign, tripShortName, wheelChairAccessible, bikesAllowed, id)
     }
 }
 

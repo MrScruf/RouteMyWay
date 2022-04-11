@@ -42,32 +42,32 @@ abstract class GeneralService<Entity : Any, Id : Any,
 }
 
 @Service
-class TripConnectionsService(val tripConnectionLightRepository: TripConnectionLightRepository) :
+class TripConnectionsService(val tripConnectionBaseRepository: TripConnectionBaseRepository) :
     GeneralService<TripConnection, Int, TripConnectionRepository>() {
     fun findAllLight(): List<TripConnectionBase> {
-        return tripConnectionLightRepository.findAll()
+        return tripConnectionBaseRepository.findAll()
     }
 }
 
 @Service
-class StopService(val stopLightRepository: StopLightRepository) : GeneralService<Stop, Int, StopRepository>() {
-    fun findAllLight(): List<StopBase> {
-        return stopLightRepository.findAll()
+class StopService(val stopBaseRepository: StopBaseRepository) : GeneralService<Stop, Int, StopRepository>() {
+    fun findAllBase(): List<StopBase> {
+        return stopBaseRepository.findAll()
     }
 
     fun findByStopId(stopId: String): Stop? {
         return repository.findByStopId(stopId)
     }
 
-    fun findAllByName(name:String):List<Stop>{
+    fun findAllByName(name: String): List<Stop> {
         return repository.findAllByName(name)
     }
 }
 
 @Service
-class TripService(val tripLightRepository: TripLightRepository) : GeneralService<Trip, Int, TripRepository>() {
-    fun findAllLight(): List<TripBase> {
-        return tripLightRepository.findAll()
+class TripService(val tripBaseRepository: TripBaseRepository) : GeneralService<Trip, Int, TripRepository>() {
+    fun findAllBase(): List<TripBase> {
+        return tripBaseRepository.findAll()
     }
 }
 
@@ -84,4 +84,9 @@ class RouteService() : GeneralService<Route, Int, RouteRepository>();
 class RouteTypeService() : GeneralService<RouteType, Int, RouteTypeRepository>();
 
 @Service
-class ServiceDayService() : GeneralService<ServiceDay, Int, ServiceDayRepository>();
+class ServiceDayService(val serviceDayBaseRepository: ServiceDayBaseRepository) :
+    GeneralService<ServiceDay, Int, ServiceDayRepository>() {
+    fun loadAllBase(): List<ServiceDayBase> {
+        return serviceDayBaseRepository.findAll();
+    }
+}

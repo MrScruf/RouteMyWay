@@ -14,13 +14,15 @@ class DataProvider(
     private val footConnectionsService: FootConnectionsService,
     private val stopService: StopService,
     private val tripService: TripService,
-    private val routeService: RouteService
-) {
+    private val serviceDayService: ServiceDayService,
+
+    ) {
     private val logger: Logger = LoggerFactory.getLogger(DataProvider::class.java)
     var baseTripConnections: List<TripConnectionBase> = listOf()
     var footConnections: Map<Int, Set<FootPath>> = mapOf()
     var baseStops: Map<Int, StopBase> = mapOf()
     var baseTrips: Map<Int, TripBase> = mapOf()
+    var serviceDays: Map<Int, Map<LocalDate, Boolean>> = mapOf()
 
     fun getTripConnectionsReversed(
         date: LocalDate,
@@ -29,7 +31,7 @@ class DataProvider(
         (vehiclesAllowed == null || vehiclesAllowed.contains(baseTrips[it.tripId]?.routeTypeId)) &&
                 (!bikesAllowed || baseTrips[it.tripId]?.bikesAllowed == 1) &&
                 (!wheelChairAccessible || baseTrips[it.tripId]?.wheelChairAccessible == 1)
-    }.filter { true }//TODO - callendar dates filtering
+    }.filter { serviceDays[baseTrips[it.tripId]?.serviceId]?.get(date) ?: true }
 
     @Synchronized
     fun reloadData() {
@@ -39,25 +41,30 @@ class DataProvider(
         logger.debug("Reloading trip connections")
         baseTripConnections = tripConnectionsService.findAllLight().sortedBy { it.departureTime }
         logger.debug("Reloading foot connections")
-        val tmp = footConnectionsService.findAll()
-        val tmpMap = mutableMapOf<Int, MutableSet<FootPath>>().withDefault { mutableSetOf() }
-        for (footConnection in tmp) {
+        val tmpFootConnections = footConnectionsService.findAll()
+        val tmpFootConnectionsMap = mutableMapOf<Int, MutableSet<FootPath>>().withDefault { mutableSetOf() }
+        for (footConnection in tmpFootConnections) {
             //After loading one-sided footpath from DB, save the footpath from both sides
-            tmpMap.getOrPut(footConnection.departureStopId) { mutableSetOf() }.add(footConnection)
+            tmpFootConnectionsMap.getOrPut(footConnection.departureStopId) { mutableSetOf() }.add(footConnection)
             if (footConnection.arrivalStopId != footConnection.departureStopId)
-                tmpMap.getOrPut(footConnection.arrivalStopId) { mutableSetOf() }.add(
+                tmpFootConnectionsMap.getOrPut(footConnection.arrivalStopId) { mutableSetOf() }.add(
                     FootPath(
-                        footConnection.arrivalStopId,
-                        footConnection.departureStopId,
-                        footConnection.durationInMinutes
+                        footConnection.arrivalStopId, footConnection.departureStopId, footConnection.durationInMinutes
                     )
                 )
         }
-        footConnections = tmpMap.toMap()
+        footConnections = tmpFootConnectionsMap.toMap()
+        logger.debug("Reloading service days")
+        val tmpServiceDays = serviceDayService.loadAllBase()
+        val tmpMapServiceDays = mutableMapOf<Int, MutableMap<LocalDate, Boolean>>()
+        tmpServiceDays.forEach {
+            tmpMapServiceDays.getOrPut(it.serviceIdInt) { mutableMapOf() }[it.day] = it.willGo
+        }
+        serviceDays = tmpMapServiceDays
         logger.debug("Reloading stops")
-        baseStops = stopService.findAllLight().associateBy { it.id }
+        baseStops = stopService.findAllBase().associateBy { it.id }
         logger.debug("Reloading trips")
-        baseTrips = tripService.findAllLight().associateBy { it.id }
+        baseTrips = tripService.findAllBase().associateBy { it.id }
         logger.info("Data cache reloaded")
         System.gc()
     }
