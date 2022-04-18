@@ -1,0 +1,76 @@
+#main{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    background-color: white;
+    width: 100%;
+    padding: 1em;
+}
+#main form > div{
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    padding: 0.6rem;
+}
+#main form input[type="search"]{
+    font-size: 1.5rem;
+    margin-right: 1rem;
+}
+#main form button{
+    padding-left: 1rem;
+    padding-right: 1rem;
+    font-size: 1.5em;
+}
+body{
+    padding: 5rem;
+}
+.search{
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+#sendButton{
+    max-height: 2rem;
+}
+.dateTimePicker{
+    height: 1.8rem;
+}
+#select{
+    overflow: visible;
+}
+#select >label{
+    margin-top: 0.25rem;
+}
+#setup > input{
+    margin-right: 1rem;
+}
+#setup > input[type="checkbox"]{
+    height: 1rem;
+    width: 1rem;
+}
+#setup > input[type="number"]{
+    width: 3rem;
+    padding: 0.2rem;
+    margin-left: 0.3rem;
+}
+#vehicles{
+    margin-left: 1rem;
+    align-items: center;
+    justify-content: center;
+}
+#searchWrapper{
+    height: 3rem;
+    overflow: visible;
+}
+
+.connection{
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+}
+.connection > div{
+    margin-left: 1rem;
+}
