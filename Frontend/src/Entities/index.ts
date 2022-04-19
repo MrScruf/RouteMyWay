@@ -1,12 +1,9 @@
 import SearchResult from "../Components/SearchResultView";
 
-export interface SearchResult {
+
+export interface Stop {
   id: number;
   name: string;
-  other: any | null;
-}
-
-export interface Stop extends SearchResult {
   wheelChairBoarding: number;
   stopId: string;
 }

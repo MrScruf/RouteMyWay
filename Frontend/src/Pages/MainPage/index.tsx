@@ -1,5 +1,4 @@
 import { ChangeEvent, useEffect, useRef, useState } from "react"
-import StopsText from "../../Components/SearchInput"
 import { Paths, Stop, Vehicle } from "../../Entities"
 import "./index.css"
 import { ToastContainer, toast } from 'react-toastify';
@@ -9,6 +8,9 @@ import "./SearchResult.css"
 import axios from "axios";
 import Multiselect from 'multiselect-react-dropdown';
 import PathsView from "../../Components/PathsView";
+import ReactModal from 'react-modal';
+import ReactLoading from "react-loading";
+import { MdClose } from "react-icons/md";
 const SEARCH_DELAY_MS = 400
 
 interface MainPageProps {
@@ -32,6 +34,9 @@ function MainPage(props: MainPageProps) {
   const [departureTime, setDepartureTime] = useState<Date>(new Date())
   const [paths, setPaths] = useState<Paths | null>(null)
   const [vehicles, setVehicles] = useState<Array<Vehicle>>([])
+  const [modalIsOpen, setModalIsOpen] = useState<boolean>(false);
+  const [dataUploading, setDataUploading] = useState<boolean>(false);
+  const [fileToUpload, setFileToUpload] = useState<File|null>()
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       console.log(searchTermFrom)
@@ -77,6 +82,24 @@ function MainPage(props: MainPageProps) {
     return (new Date(departureTime.getTime() - departureTime.getTimezoneOffset() * 60000).toISOString()).slice(0, -8);
   }
 
+function sendFile(){
+  if(!fileToUpload){
+    toast.error("No file selected")
+    return
+  }
+  setDataUploading(true)
+  const formData = new FormData()
+  formData.append("file", fileToUpload)
+  axios.post("/load", formData,{ headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  })
+  .then(response => response.data)
+  .then(mess=>toast.info(mess))
+  .catch(e=>e.response && toast.error(e.response.data.message))
+  .finally(()=>setDataUploading(false))
+}
+
   function sendRequest(){
     const params = new URLSearchParams({})
     params.append("departureStopId", from?.stopId ?? "")
@@ -88,13 +111,19 @@ function MainPage(props: MainPageProps) {
     vehiclesAllowed.length > 0 && params.append("vehiclesAllowed", vehiclesAllowed.map(e=>e.id).join(","))
     axios.get("/path?"+ params,{}).then(response => response.data as Paths).then(json=>setPaths(json)).catch(e => e.response && toast.error(e.response.data.message))
   }
+  ReactModal.setAppElement('#root');
   return (
     <main id="main">
-      <ToastContainer position="top-right"
-        autoClose={2500}
-        hideProgressBar={false}
-        closeOnClick
-        pauseOnFocusLoss />
+      <button className="niceButton" onClick={()=>setModalIsOpen(true)}>Upload data</button>
+      <ToastContainer position="top-right" autoClose={2500} hideProgressBar={false} closeOnClick pauseOnFocusLoss />
+        <ReactModal isOpen={modalIsOpen} contentLabel="GTFS Upload" className="modal" shouldCloseOnOverlayClick={true} overlayClassName="overlay" onRequestClose={()=>setModalIsOpen(false)}>
+          <button className="iconButton" onClick={()=>setModalIsOpen(false)}><MdClose /></button>
+          <form>
+            <input type="file" disabled={dataUploading} onChange={(e)=> setFileToUpload(e.target.files?.item(0))}/>
+            <button className="niceButton" disabled={dataUploading} onClick={(e)=>sendFile()}>Send</button>
+            {dataUploading && <ReactLoading type="bubbles" color="blue" height="1rem" width="4rem" />}
+          </form>
+        </ReactModal>
       <form>
         <div id="setup">
           <label htmlFor="wheelchaitAccessible">Wheelchair accesible</label>
@@ -118,7 +147,7 @@ function MainPage(props: MainPageProps) {
             {toStops.length > 0 && toSearchFocused && <SearchResultView listClassName="searchResult" listItemClassName="searchResultItem" items={toStops} selectItem={selectToStop} ></SearchResultView>}
           </section>
           <input className="dateTimePicker" type="datetime-local" value={convertDate()} onChange={(e) => setDepartureTime(new Date(Date.parse(e.target.value) || new Date().getTime()))} />
-          <button id="sendButton" onClick={()=>sendRequest()} type="button">Send</button>
+          <button id="sendButton" onClick={()=>sendRequest()} type="button" disabled={dataUploading}>Send</button>
         </div>
       </form>
       <PathsView paths={paths}></PathsView>

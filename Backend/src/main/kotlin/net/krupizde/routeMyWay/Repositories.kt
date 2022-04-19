@@ -18,8 +18,8 @@ interface TripConnectionLightJpaRepository : JpaRepository<TripConnectionBase, I
 interface StopJpaRepository : JpaRepository<Stop, Int> {
     fun findByStopId(stopId: String): Stop?;
 
-    @Query("select max(s.id) from Stop s group by s.name having upper(s.name) like upper(?1)")
-    fun findByDistinctName(name: String, pageable: Pageable): List<Int>
+    @Query("select s from Stop s where upper(s.name) like upper(?1) or s.stopId like upper(?1)")
+    fun findByName(name: String, pageable: Pageable): List<Stop>
 }
 
 @Repository
@@ -64,7 +64,7 @@ abstract class GeneralRepository<Entity : Any, Id : Any, Repository : JpaReposit
     }
 
     open fun deleteAll() {
-        jpaRepository.deleteAll()
+        jpaRepository.deleteAllInBatch()
     }
 
     open fun saveAll(entities: Collection<Entity>): List<Entity> {
@@ -88,6 +88,7 @@ abstract class GeneralRepository<Entity : Any, Id : Any, Repository : JpaReposit
 
 @Repository
 class TripConnectionRepository() : GeneralRepository<TripConnection, Int, TripConnectionJpaRepository>() {
+
 }
 
 @Repository
@@ -97,7 +98,7 @@ class StopRepository() : GeneralRepository<Stop, Int, StopJpaRepository>() {
     }
 
     fun findAllByName(name: String): List<Stop> {
-        return jpaRepository.findAllById(jpaRepository.findByDistinctName("%${name}%", PageRequest.of(0, 10)));
+        return jpaRepository.findByName("%${name}%", PageRequest.of(0, 12));
     }
 }
 

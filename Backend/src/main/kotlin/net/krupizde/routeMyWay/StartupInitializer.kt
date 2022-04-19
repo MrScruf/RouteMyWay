@@ -1,15 +1,25 @@
 package net.krupizde.routeMyWay
 
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.context.event.ApplicationStartedEvent
+import org.springframework.context.event.ContextRefreshedEvent
 import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Component
 
 @Component
 class StartupInitializer @Autowired constructor(val dataProvider: DataProvider) {
 
-    @EventListener(ApplicationStartedEvent::class)
+    fun isJUnitTest(): Boolean {
+        for (element in Thread.currentThread().stackTrace) {
+            if (element.className.startsWith("org.junit.")) {
+                return true
+            }
+        }
+        return false
+    }
+
+    @EventListener(ContextRefreshedEvent::class)
     fun doSomethingAfterStartup() {
+        if(isJUnitTest())return
         dataProvider.reloadData()
     }
 }

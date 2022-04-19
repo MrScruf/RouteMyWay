@@ -11,6 +11,16 @@ function isFootConnection(connection: any) {
   return 'durationInMinutes' in connection
 }
 
+function addMinutesToTime(time:string, minutesToAdd: number){
+  if(!time)return ""
+    const hours = parseInt(time.substring(0,2))
+    const minutes = parseInt( time.substring(3,5))
+    const seconds = time.substring(6)
+    const outHours = hours+Math.floor(((minutes+minutesToAdd)/60))
+    const outMinutes = (minutes+minutesToAdd)%60
+    return `${outHours.toString().padStart(2,"0")}:${outMinutes.toString().padStart(2,"0")}:${seconds}`
+}
+
 function Path(props: PathViewProps) {
   function iconByRoute(connection: TripConnection) {
     const routeType = routeById(tripById(connection.tripId)?.routeId ?? -1)?.routeTypeId
@@ -67,8 +77,7 @@ function Path(props: PathViewProps) {
   const firstStop = stopById(firstTripConnection?.departureStopId ?? -1)
   const lastStop = stopById(lastFootConnection?.arrivalStopId ?? lastTripConnection?.arrivalStopId ?? -1)
   const depTime = firstTripConnection?.depTime
-  const arrDateTime = moment(lastTripConnection?.arrTime, "HH:mm:ss").add(lastFootConnection?.durationInMinutes ?? 0, "minutes")
-  const arrTime = arrDateTime.format("HH:mm:ss")
+  const arrTime = addMinutesToTime(lastTripConnection?.arrTime ?? "", lastFootConnection?.durationInMinutes ?? 0)
   return (
     <li className="path">
       <h2>{firstStop?.name} - {lastStop?.name} {(depTime && arrTime && `(${depTime} - ${arrTime})`)}</h2>

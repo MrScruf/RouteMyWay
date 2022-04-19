@@ -7,17 +7,25 @@ import io.ktor.client.engine.cio.*
 import io.ktor.client.features.json.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.runBlocking
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Order
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
+import java.time.LocalDateTime
+
 
 @SpringBootTest
-
 class AlgorithmIntergrationTests @Autowired constructor(
     private val csa: CSA,
-    @Value("\${GOOGLE_API_KEY}") private val googleApiKey: String
+    private val dataProvider: DataProvider,
+    @org.springframework.beans.factory.annotation.Value("\${GOOGLE_API_KEY}") private val googleApiKey: String
 ) {
+    @BeforeEach
+    fun beforeEach() {
+        dataProvider.reloadIfNotLoaded()
+    }
+
     @Test
     fun `Find path between two random points and check them against Google DirectionsAPI`() = runBlocking {
         val from = Stop("U306Z101P", "Nemocnice Motol", null, null, LocationType(1, ""), null)
@@ -32,11 +40,10 @@ class AlgorithmIntergrationTests @Autowired constructor(
             parameter("origin", from.name)
             parameter("destination", to.name)
             parameter("key", googleApiKey)
-            parameter("departure_time", "1647244800")
+            //parameter("departure_time", "1647244800")
             parameter("mode", "transit")
         }
-        //val path = csa.findShortestPathCSAProfile(from.stopId, to.stopId, LocalDateTime.now())
-
+        val path = csa.findShortestPathCSAProfile(from.stopId, to.stopId, LocalDateTime.now())
     }
 }
 

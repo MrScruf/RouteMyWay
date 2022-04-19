@@ -15,8 +15,7 @@ class DataProvider(
     private val stopService: StopService,
     private val tripService: TripService,
     private val serviceDayService: ServiceDayService,
-
-    ) {
+) {
     private val logger: Logger = LoggerFactory.getLogger(DataProvider::class.java)
     var baseTripConnections: List<TripConnectionBase> = listOf()
     var footConnections: Map<Int, Set<FootPath>> = mapOf()
@@ -35,8 +34,7 @@ class DataProvider(
 
     @Synchronized
     fun reloadData() {
-        //TODO - concurrency, this method may be called multiple times from multiple threads at the same time, which could start
-        // reloading multiple times in a row, which is not desirable
+        //TODO - concurrency
         logger.info("Reloading data cache")
         logger.debug("Reloading trip connections")
         baseTripConnections = tripConnectionsService.findAllLight().sortedBy { it.departureTime }
@@ -67,5 +65,10 @@ class DataProvider(
         baseTrips = tripService.findAllBase().associateBy { it.id }
         logger.info("Data cache reloaded")
         System.gc()
+    }
+
+    fun reloadIfNotLoaded(){
+        if(baseTrips.isNotEmpty())return;
+        reloadData()
     }
 }

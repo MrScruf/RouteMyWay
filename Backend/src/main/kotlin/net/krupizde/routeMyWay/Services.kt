@@ -3,6 +3,8 @@ package net.krupizde.routeMyWay
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Service
+import javax.persistence.EntityManager
+import javax.persistence.PersistenceContext
 import javax.transaction.Transactional
 
 abstract class GeneralService<Entity : Any, Id : Any,
@@ -38,6 +40,27 @@ abstract class GeneralService<Entity : Any, Id : Any,
     @Transactional
     open fun findAllByIds(ids: List<Id>): List<Entity> {
         return repository.findAllByIds(ids)
+    }
+}
+
+@Service
+class UtilService() {
+    @PersistenceContext
+    @Autowired
+    protected lateinit var entityManager: EntityManager;
+
+    @Transactional
+    fun truncateAll() {
+        entityManager.createNativeQuery("SET REFERENTIAL_INTEGRITY FALSE").executeUpdate()
+        entityManager.createNativeQuery("truncate table tripConnection").executeUpdate()
+        entityManager.createNativeQuery("truncate table footPath").executeUpdate()
+        entityManager.createNativeQuery("truncate table serviceDay").executeUpdate()
+        entityManager.createNativeQuery("truncate table trip").executeUpdate()
+        entityManager.createNativeQuery("truncate table stop").executeUpdate()
+        entityManager.createNativeQuery("truncate table route").executeUpdate()
+        entityManager.createNativeQuery("truncate table routeType").executeUpdate()
+        entityManager.createNativeQuery("truncate table locationType").executeUpdate()
+        entityManager.createNativeQuery("SET REFERENTIAL_INTEGRITY TRUE").executeUpdate()
     }
 }
 

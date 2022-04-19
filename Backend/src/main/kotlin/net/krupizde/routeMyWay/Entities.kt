@@ -1,8 +1,11 @@
 package net.krupizde.routeMyWay
 
+import com.fasterxml.jackson.core.JsonGenerator
+import com.fasterxml.jackson.databind.SerializerProvider
+import com.fasterxml.jackson.databind.annotation.JsonSerialize
+import com.fasterxml.jackson.databind.ser.std.StdSerializer
 import java.io.Serializable
 import java.time.LocalDate
-import java.time.LocalTime
 import javax.persistence.*
 import kotlin.math.max
 
@@ -42,6 +45,11 @@ open class TripConnectionBase(
 
     val arrivalTime: UInt
         get() = arrivalStopArrivalTime.toUInt()
+
+    val depTime: Time
+        get() = Utils.extractTime(departureTime)
+    val arrTime: Time
+        get() = Utils.extractTime(arrivalTime)
 }
 
 @Entity
@@ -132,8 +140,8 @@ data class RouteType(@Id val routeTypeId: Int, val name: String);
 
 data class StopTimeOut(
     val tripId: Int,
-    val departureTime: LocalTime,
-    val arrivalTime: LocalTime,
+    val departureTime: Time,
+    val arrivalTime: Time,
     val stopId: Int,
     val stopSequence: Int
 )
@@ -146,11 +154,18 @@ data class PathGtfs(
     val footPaths: List<FootPath>
 )
 
-data class Path(
+data class Paths(
     val stops: Set<Stop>,
     val trips: Set<Trip>,
     val routes: Set<Route>,
-    val connections: List<Connection>,
+    val paths: List<List<Connection>>
+)
+
+data class PathPart(
+    val stops: Set<Stop>,
+    val trips: Set<Trip>,
+    val routes: Set<Route>,
+    val connections: List<Connection>
 )
 
 /**
@@ -185,4 +200,21 @@ data class StopProfile(
 ) {
     fun dominates(second: StopProfile): Boolean =
         departureTime >= second.departureTime && arrivalTime <= second.arrivalTime;
+}
+
+@JsonSerialize(using = TimeSerializer::class)
+data class Time(val hours: Int, val minutes: Int, val seconds: Int) {
+    override fun toString(): String {
+        return "${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${
+            seconds.toString().padStart(2, '0')
+        }"
+
+    }
+}
+
+class TimeSerializer() : StdSerializer<Time>(Time::class.java) {
+    override fun serialize(value: Time, gen: JsonGenerator, provider: SerializerProvider) {
+        gen.writeString(value.toString())
+    }
+
 }

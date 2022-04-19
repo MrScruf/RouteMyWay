@@ -28,6 +28,7 @@ class Gtfs(
     private val routeTypeService: RouteTypeService,
     private val serviceDayService: ServiceDayService,
     private val dataProvider: DataProvider,
+    private val utilService: UtilService,
     @Value("\${parser.maxDurationFootPathsMinutes:30}") private val maxDurationFootPathsMinutes: Int,
     @Value("\${parser.generateFootPathsFromStops:false}") private val generateFootPathsFromStops: Boolean
 ) {
@@ -120,18 +121,12 @@ class Gtfs(
         })
     }
 
+    //TODO - speed this up
     @Transactional
     protected fun cleanDb() {
-        logger.info("Deleting trip connections")
-        tripConnectionsService.deleteAll()
-        logger.info("Deleting foot connections")
-        footTripConnectionsService.deleteAll()
-        logger.info("Deleting stops")
-        stopService.deleteAll()
-        logger.info("Deleting trips")
-        tripService.deleteAll()
-        logger.info("Deleting location types")
-        locationTypeService.deleteAll()
+        logger.info("Deleting all")
+        utilService.truncateAll()
+        logger.info("Deleted all")
     }
 
     private fun generateServiceDays(
@@ -170,7 +165,7 @@ class Gtfs(
                     for (y in i until stops.size) {
                         var distanceInKm = distanceInKm(stops[i], stops[y])
                         if (distanceInKm < 0) continue
-                        distanceInKm *= 1.65
+                        distanceInKm *= 1.6
                         val duration =
                             if (stops[i].stopId == stops[y].stopId) 0 else ceil((distanceInKm / 5) * 60).toInt()
                         if (duration > maxDurationFootPathsMinutes) continue
