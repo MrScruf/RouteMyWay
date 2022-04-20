@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import java.time.LocalDateTime
 import java.time.ZoneOffset
+import java.time.ZonedDateTime
 
 
 @SpringBootTest
@@ -31,8 +32,7 @@ class AlgorithmIntergrationTests @Autowired constructor(
     fun `Find path between two random points and check them against Google DirectionsAPI`() = runBlocking {
         val from = Stop("U306Z101P", "Nemocnice Motol", null, null, LocationType(1, ""), null)
         val to = Stop("U286Z101P", "Háje", null, null, LocationType(1, ""), null)
-        val departureTime = LocalDateTime.now()
-
+        val zdt = ZonedDateTime.now()
 
         val client = HttpClient(CIO) {
             install(JsonFeature) {
@@ -43,41 +43,13 @@ class AlgorithmIntergrationTests @Autowired constructor(
             parameter("origin", from.name)
             parameter("destination", to.name)
             parameter("key", googleApiKey)
-            parameter("departure_time", departureTime.toInstant(ZoneOffset.UTC).toEpochMilli())
+            parameter("departure_time", zdt.toInstant().toEpochMilli())
             parameter("mode", "transit")
         }
-        val path = csa.findShortestPathCSAProfile(from.stopId, to.stopId, LocalDateTime.now())
+        val path = csa.findShortestPathCSAProfile(from.stopId, to.stopId, zdt.toLocalDateTime())
         val connections = path.paths.first()
-
+        val googleLegs = response.routes.first().legs.first()
+        
     }
 }
 
-@JsonIgnoreProperties(ignoreUnknown = true)
-data class ResponseEntity(@JsonAlias("routes") val routes: List<ResponseEntityRoute>);
-@JsonIgnoreProperties(ignoreUnknown = true)
-data class ResponseEntityRoute(@JsonAlias("legs") val legs: List<ResponseEntityRouteLeg>);
-@JsonIgnoreProperties(ignoreUnknown = true)
-data class ResponseEntityRouteLeg(@JsonAlias("steps") val steps: List<ResponseEntityRouteStep>)
-
-@JsonIgnoreProperties(ignoreUnknown = true)
-data class ResponseEntityRouteStep(
-    @JsonAlias("travel_mode") val travelMode: String,
-    @JsonAlias("duration") val duration: Value,
-    @JsonAlias("distance") val distance: Value,
-    @JsonAlias("transit_details") val transitDetails: TransitDetails?
-)
-
-@JsonIgnoreProperties(ignoreUnknown = true)
-data class TransitDetails(
-    @JsonAlias("arrival_stop") val arrivalStop: TransitDetailsStop,
-    @JsonAlias("departure_stop") val departureStop: TransitDetailsStop,
-    @JsonAlias("arrival_time") val arrivalTime: Value,
-    @JsonAlias("departure_time") val departureTime: Value,
-    @JsonAlias("num_stops") val numberOfStops: Int
-)
-
-@JsonIgnoreProperties(ignoreUnknown = true)
-data class TransitDetailsStop(val name: String)
-
-@JsonIgnoreProperties(ignoreUnknown = true)
-data class Value(val value: Int)

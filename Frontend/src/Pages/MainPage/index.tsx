@@ -1,4 +1,4 @@
-import { ChangeEvent, useEffect, useRef, useState } from "react"
+import { ChangeEvent, useEffect, useReducer, useRef, useState } from "react"
 import { Paths, Stop, Vehicle } from "../../Entities"
 import "./index.css"
 import { ToastContainer, toast } from 'react-toastify';
@@ -38,6 +38,7 @@ function MainPage(props: MainPageProps) {
   const [dataUploading, setDataUploading] = useState<boolean>(false);
   const [fileToUpload, setFileToUpload] = useState<File|null>()
   const [pathLoading, setPathLoading] = useState<boolean>(false); 
+  const [password, setPassword] = useState<string>(""); 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       console.log(searchTermFrom)
@@ -91,13 +92,17 @@ function sendFile(){
   setDataUploading(true)
   const formData = new FormData()
   formData.append("file", fileToUpload)
+  formData.append("password", password)
   axios.post("/load", formData,{ headers: {
       'Content-Type': 'multipart/form-data'
     }
   })
   .then(response => response.data)
   .then(mess=>toast.success(mess))
-  .catch(e=>e.response && toast.error(e.response.data.message))
+  .catch(e=>{if(e.response){
+    if(e.response.status == 401)toast.error("Unauthorized")
+    else toast.error(e.response.message)
+  }}  )
   .finally(()=>setDataUploading(false))
 }
 
@@ -111,7 +116,7 @@ function sendFile(){
     params.append("bikesAllowed", bikesAllowed + "")
     params.append("wheelChairsAllowed", wheelchairAccessible + "")
     vehiclesAllowed.length > 0 && params.append("vehiclesAllowed", vehiclesAllowed.map(e=>e.id).join(","))
-    axios.get("/path?"+ params,{}).then(response => response.data as Paths).then(json=>setPaths(json)).catch(e => e.response && toast.error(e.response.data.message)).finally(()=>setPathLoading(false))
+    axios.get("/path/json?"+ params,{}).then(response => response.data as Paths).then(json=>setPaths(json)).catch(e => e.response && toast.error(e.response.data.message)).finally(()=>setPathLoading(false))
   }
   ReactModal.setAppElement('#root');
   return (
@@ -122,6 +127,8 @@ function sendFile(){
           <button className="iconButton" onClick={()=>setModalIsOpen(false)}><MdClose /></button>
           <form>
             <input type="file" disabled={dataUploading} onChange={(e)=> setFileToUpload(e.target.files?.item(0))}/>
+            <label htmlFor="password">Password</label>
+            <input type="password" onChange={(e)=>setPassword(e.target.value)} id="password"></input>
             <button className="niceButton" disabled={dataUploading} onClick={(e)=>sendFile()}>Send</button>
             {dataUploading && <ReactLoading type="bubbles" color="blue" height="1rem" width="4rem" />}
           </form>

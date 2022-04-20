@@ -1,6 +1,8 @@
 package net.krupizde.routeMyWay
 
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpHeaders.CONTENT_DISPOSITION
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -16,11 +18,13 @@ class Controller(
     private val csa: CSA,
     private val stopService: StopService,
     private val csvWriter: CsvWriter,
-    private val routeTypeService: RouteTypeService
+    private val routeTypeService: RouteTypeService,
+    @Value("\${updatePassword:admin}") private val updatePassword: String
 ) {
 
     @PostMapping("/load")
-    fun loadGtfs(@RequestParam("file") file: MultipartFile): ResponseEntity<*> {
+    fun loadGtfs(@RequestParam("file") file: MultipartFile, @RequestParam("password") password:String): ResponseEntity<*> {
+        if(password != updatePassword)return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized")
         gtfs.loadGtfsData(file.inputStream);
         return ResponseEntity.ok("Updated");
     }

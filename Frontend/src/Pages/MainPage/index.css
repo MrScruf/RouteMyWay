@@ -105,9 +105,13 @@ body{
     background-color: white;
 
 }
+.modal>form{
+    display: flex;
+    flex-direction: column;
+}
 .modal > button{
     position: relative;
-    left: 75%;
+    left: 70%;
     top: -40%
 }
 .modal > form >input{
@@ -121,6 +125,10 @@ body{
     border-radius: 0.7rem;
     padding: 0.2rem 1rem;
     cursor: pointer;
+}
+
+.niceButton:disabled, #sendButton:disabled{
+    background-color: #5191bd;
 }
 
 .iconButton{
