@@ -1,6 +1,7 @@
 package net.krupizde.routeMyWay
 
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.data.domain.Example
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
@@ -82,7 +83,9 @@ abstract class GeneralRepository<Entity : Any, Id : Any, Repository : JpaReposit
     open fun findAllByIds(ids: List<Id>): List<Entity> {
         return jpaRepository.findAllById(ids)
     }
-
+    open fun findByExample(example: Example<Entity>): Entity?{
+        return jpaRepository.findOne(example).orElse(null)
+    }
 
 }
 

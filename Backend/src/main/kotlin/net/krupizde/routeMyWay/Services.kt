@@ -1,6 +1,7 @@
 package net.krupizde.routeMyWay
 
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.data.domain.Example
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Service
 import javax.persistence.EntityManager
@@ -41,6 +42,10 @@ abstract class GeneralService<Entity : Any, Id : Any,
     open fun findAllByIds(ids: List<Id>): List<Entity> {
         return repository.findAllByIds(ids)
     }
+    open fun findByExample(example: Example<Entity>): Entity?{
+        return repository.findByExample(example)
+    }
+
 }
 
 @Service

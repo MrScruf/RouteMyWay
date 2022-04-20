@@ -2,6 +2,7 @@ package net.krupizde.routeMyWay
 
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.springframework.data.domain.Example
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
 import java.util.*
@@ -240,8 +241,7 @@ class CSA(
     }
 
     fun convertPathsToGtfsPath(paths: Paths): PathGtfs {
-        /*val firstPathTripConnections = tripConnectionsService.findAllByIds(
-            paths.paths.first().filterIsInstance<TripConnectionBase>().map { it.tripConnectionId })
+        val firstPathTripConnections = paths.paths.first().filterIsInstance<TripConnectionBase>()
         val firstPathFootConnections = paths.paths.first().filterIsInstance<FootPath>()
         val usedStopsIds = firstPathTripConnections.flatMap { listOf(it.departureStopId, it.arrivalStopId) }
         val usedTripsIds = firstPathTripConnections.flatMap { listOf(it.departureStopId, it.arrivalStopId) }
@@ -257,16 +257,15 @@ class CSA(
             val arrStopId = paths.stops.find { stop -> stop.id == it.arrivalStopId }?.stopId ?: error("Non existent stop")
             listOf(
                 StopTimeOut(
-                    it.tripId, Utils.extractTime(it.departureStopArrivalTime),
+                    it.tripId, Utils.extractTime(it.departureStopDepartureTime),
                     Utils.extractTime(it.departureStopDepartureTime), depStopId, stopTimesSequence++
                 ),
                 StopTimeOut(
                     it.tripId, Utils.extractTime(it.arrivalStopArrivalTime),
-                    Utils.extractTime(it.arrivalStopDepartureTime), arrStopId, stopTimesSequence++
+                    Utils.extractTime(it.arrivalStopArrivalTime), arrStopId, stopTimesSequence++
                 ),
             )
         }
-        return PathGtfs(outStops, outTrips, outRoutes, outStopTimes, firstPathFootConnections)*/
-        return PathGtfs(listOf(), listOf(), listOf(), listOf(), listOf())
+        return PathGtfs(outStops, outTrips, outRoutes, outStopTimes, firstPathFootConnections)
     }
 }

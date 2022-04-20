@@ -47,7 +47,7 @@ class AlgorithmIntergrationTests @Autowired constructor(
             parameter("mode", "transit")
         }
         val path = csa.findShortestPathCSAProfile(from.stopId, to.stopId, LocalDateTime.now())
-        val connections = path.paths[0]
+        val connections = path.paths.first()
 
     }
 }

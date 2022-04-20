@@ -75,9 +75,16 @@ data class FootPath(
     @Id val departureStopId: Int = 0,
     @Id val arrivalStopId: Int = 0,
     @Column(name = "duration") val durationInMinutes: Int = -1
-) : Connection("FootPath"){
-    fun toCsv(id:Int):String{
-        return "$id,$departureStopId,$arrivalStopId,1,1,$durationInMinutes"
+) : Connection("FootPath") {
+    fun toCsvList(id: Int): List<String> {
+        return listOf(
+            id.toString(),
+            departureStopId.toString(),
+            arrivalStopId.toString(),
+            "1",
+            "1",
+            durationInMinutes.toString()
+        )
     }
 }
 
@@ -102,9 +109,9 @@ data class Stop(
     @ManyToOne @JoinColumn(name = "locationTypeId") val locationType: LocationType,
     override val wheelChairBoarding: Int?,
     override val id: Int = 0
-) : StopBase(id, wheelChairBoarding){
-    fun toCsv():String{
-        return "$stopId,$name,$latitude,$longitude"
+) : StopBase(id, wheelChairBoarding) {
+    fun toCsvList(): List<String> {
+        return listOf(stopId, name ?: "", latitude?.toString() ?: "", longitude?.toString() ?: "")
     }
 }
 
@@ -131,9 +138,9 @@ data class Trip(
     override val wheelChairAccessible: Int?,
     override val bikesAllowed: Int?,
     override val id: Int = 0
-) : TripBase(id, wheelChairAccessible, bikesAllowed, serviceId){
-    fun toCsv():String{
-        return "$routeId,$serviceId,$tripId,$tripHeadSign,$tripShortName"
+) : TripBase(id, wheelChairAccessible, bikesAllowed, serviceId) {
+    fun toCsvList(): List<String> {
+        return listOf(routeId.toString(), serviceId.toString(), tripId, tripHeadSign ?: "", tripShortName ?: "")
     }
 }
 
@@ -146,11 +153,12 @@ data class Route(
     val longName: String?,
     @ManyToOne(optional = false) @JoinColumn(name = "routeTypeId") val routeTypeId: RouteType,
     @Id val id: Int = 0
-){
-    fun toCsv():String{
-        return "$routeId,$shortName,$longName,${routeTypeId.routeTypeId}"
+) {
+    fun toCsvList(): List<String> {
+        return listOf(id.toString(), shortName ?: "", longName ?: "", routeTypeId.routeTypeId.toString())
     }
 }
+
 @Entity
 data class RouteType(@Id val routeTypeId: Int, val name: String);
 
@@ -160,9 +168,15 @@ data class StopTimeOut(
     val arrivalTime: Time,
     val stopId: String,
     val stopSequence: Int
-){
-    fun toCsv():String{
-        return "$tripId,$arrivalTime,$departureTime,$stopId,$stopSequence"
+) {
+    fun toCsvList(): List<String> {
+        return listOf(
+            tripId.toString(),
+            arrivalTime.toString(),
+            departureTime.toString(),
+            stopId,
+            stopSequence.toString()
+        )
     }
 }
 
@@ -196,7 +210,7 @@ data class ParetoProfile(
 ) {
     //TODO - prekontrolovat meze toho, kde se hleda dominance
     fun dominates(vector: StopProfile): Boolean {
-        val fromIndex =  profiles.indexOfFirst { it.departureTime >= vector.departureTime }
+        val fromIndex = profiles.indexOfFirst { it.departureTime >= vector.departureTime }
         for (profile in profiles.subList(fromIndex, profiles.size)) {
             if (vector.arrivalTime < profile.arrivalTime) break;
             if (profile.dominates(vector)) return true;
