@@ -28,7 +28,7 @@ class AlgorithmIntergrationTests @Autowired constructor(
         dataProvider.reloadIfNotLoaded()
     }
 
-    @Test
+    //@Test
     fun `Find path between two random points and check them against Google DirectionsAPI`() = runBlocking {
         val from = Stop("U306Z101P", "Nemocnice Motol", null, null, LocationType(1, ""), null)
         val to = Stop("U286Z101P", "Háje", null, null, LocationType(1, ""), null)
