@@ -37,6 +37,7 @@ function MainPage(props: MainPageProps) {
   const [modalIsOpen, setModalIsOpen] = useState<boolean>(false);
   const [dataUploading, setDataUploading] = useState<boolean>(false);
   const [fileToUpload, setFileToUpload] = useState<File|null>()
+  const [pathLoading, setPathLoading] = useState<boolean>(false); 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       console.log(searchTermFrom)
@@ -95,12 +96,13 @@ function sendFile(){
     }
   })
   .then(response => response.data)
-  .then(mess=>toast.info(mess))
+  .then(mess=>toast.success(mess))
   .catch(e=>e.response && toast.error(e.response.data.message))
   .finally(()=>setDataUploading(false))
 }
 
   function sendRequest(){
+    setPathLoading(true)
     const params = new URLSearchParams({})
     params.append("departureStopId", from?.stopId ?? "")
     params.append("arrivalStopId", to?.stopId ?? "")
@@ -109,7 +111,7 @@ function sendFile(){
     params.append("bikesAllowed", bikesAllowed + "")
     params.append("wheelChairsAllowed", wheelchairAccessible + "")
     vehiclesAllowed.length > 0 && params.append("vehiclesAllowed", vehiclesAllowed.map(e=>e.id).join(","))
-    axios.get("/path?"+ params,{}).then(response => response.data as Paths).then(json=>setPaths(json)).catch(e => e.response && toast.error(e.response.data.message))
+    axios.get("/path?"+ params,{}).then(response => response.data as Paths).then(json=>setPaths(json)).catch(e => e.response && toast.error(e.response.data.message)).finally(()=>setPathLoading(false))
   }
   ReactModal.setAppElement('#root');
   return (
@@ -150,7 +152,7 @@ function sendFile(){
           <button id="sendButton" onClick={()=>sendRequest()} type="button" disabled={dataUploading}>Send</button>
         </div>
       </form>
-      <PathsView paths={paths}></PathsView>
+      {(!pathLoading && <PathsView paths={paths}></PathsView>) || (pathLoading && <ReactLoading type="spinningBubbles" color="blue" height="1rem" width="4rem" />)}
     </main>
   )
 }

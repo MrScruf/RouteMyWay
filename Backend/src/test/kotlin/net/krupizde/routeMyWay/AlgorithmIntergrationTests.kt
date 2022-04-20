@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import java.time.LocalDateTime
+import java.time.ZoneOffset
 
 
 @SpringBootTest
@@ -30,6 +31,8 @@ class AlgorithmIntergrationTests @Autowired constructor(
     fun `Find path between two random points and check them against Google DirectionsAPI`() = runBlocking {
         val from = Stop("U306Z101P", "Nemocnice Motol", null, null, LocationType(1, ""), null)
         val to = Stop("U286Z101P", "Háje", null, null, LocationType(1, ""), null)
+        val departureTime = LocalDateTime.now()
+
 
         val client = HttpClient(CIO) {
             install(JsonFeature) {
@@ -40,10 +43,12 @@ class AlgorithmIntergrationTests @Autowired constructor(
             parameter("origin", from.name)
             parameter("destination", to.name)
             parameter("key", googleApiKey)
-            //parameter("departure_time", "1647244800")
+            parameter("departure_time", departureTime.toInstant(ZoneOffset.UTC).toEpochMilli())
             parameter("mode", "transit")
         }
         val path = csa.findShortestPathCSAProfile(from.stopId, to.stopId, LocalDateTime.now())
+        val connections = path.paths[0]
+
     }
 }
 

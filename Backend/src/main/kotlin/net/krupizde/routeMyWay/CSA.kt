@@ -62,19 +62,36 @@ class CSA(
     fun findShortestPathCSAProfile(
         departureStopId: String, arrivalStopId: String, departureDateTime: LocalDateTime,
         bikesAllowed: Boolean = false, wheelChairAccessible: Boolean = false, vehiclesAllowed: Set<Int>? = null,
-        numberOfPaths: Int = 1
+        numberOfPaths: Int = 1, gtfs: Boolean = false
     ): Paths {
         val departureStopIntId =
             stopService.findByStopId(departureStopId)?.id ?: error("Non-existent stop $departureStopId")
         val arrivalStopIntId =
             stopService.findByStopId(arrivalStopId)?.id ?: error("Non-existent stop $arrivalStopId")
+
         return findShortestPathCSAProfile(
             departureStopIntId, arrivalStopIntId, departureDateTime, bikesAllowed, wheelChairAccessible,
             vehiclesAllowed, numberOfPaths
         )
     }
+    fun findShortestPathCSAProfileGtfs(
+        departureStopId: String, arrivalStopId: String, departureDateTime: LocalDateTime,
+        bikesAllowed: Boolean = false, wheelChairAccessible: Boolean = false, vehiclesAllowed: Set<Int>? = null,
+        numberOfPaths: Int = 1, gtfs: Boolean = false
+    ): PathGtfs {
+        val departureStopIntId =
+            stopService.findByStopId(departureStopId)?.id ?: error("Non-existent stop $departureStopId")
+        val arrivalStopIntId =
+            stopService.findByStopId(arrivalStopId)?.id ?: error("Non-existent stop $arrivalStopId")
 
-    fun findShortestPathCSAProfile(
+        return convertPathsToGtfsPath(findShortestPathCSAProfile(
+            departureStopIntId, arrivalStopIntId, departureDateTime, bikesAllowed, wheelChairAccessible,
+            vehiclesAllowed, numberOfPaths
+        ))
+    }
+
+
+    private fun findShortestPathCSAProfile(
         departureStopId: Int, arrivalStopId: Int, departureDateTime: LocalDateTime,
         bikesAllowed: Boolean = false, wheelChairAccessible: Boolean = false, vehiclesAllowed: Set<Int>? = null,
         numberOfPaths: Int = 1
@@ -154,15 +171,15 @@ class CSA(
     ): Paths {
         val output = LinkedList<PathPart>()
         var departureTimeTmp = departureTime
-        for(i in 1..numberOfPaths) {
+        for (i in 1..numberOfPaths) {
             try {
                 val path = extractOnePath(profiles, departureStopId, arrivalStopId, departureTimeTmp, durationsToTarget)
                 val firstConnection = path.connections.first() // TODO - first should be footPath to first stop
                 if (firstConnection is TripConnectionBase)
                     departureTimeTmp = Utils.addSecondsToTime(firstConnection.departureTime, 1u)
                 output.add(path)
-            }catch(e: java.lang.IllegalStateException){
-                if(output.isNotEmpty())break;
+            } catch (e: java.lang.IllegalStateException) {
+                if (output.isNotEmpty()) break;
                 throw e;
             }
         }
@@ -223,7 +240,7 @@ class CSA(
     }
 
     fun convertPathsToGtfsPath(paths: Paths): PathGtfs {
-        val firstPathTripConnections = tripConnectionsService.findAllByIds(
+        /*val firstPathTripConnections = tripConnectionsService.findAllByIds(
             paths.paths.first().filterIsInstance<TripConnectionBase>().map { it.tripConnectionId })
         val firstPathFootConnections = paths.paths.first().filterIsInstance<FootPath>()
         val usedStopsIds = firstPathTripConnections.flatMap { listOf(it.departureStopId, it.arrivalStopId) }
@@ -235,17 +252,21 @@ class CSA(
         val outRoutes = paths.routes.toMutableList().filter { !usedRoutesIds.contains(it.id) }
         var stopTimesSequence = 0
         val outStopTimes = firstPathTripConnections.flatMap {
+            val depStopId =
+                paths.stops.find { stop -> stop.id == it.departureStopId }?.stopId ?: error("Non existent stop")
+            val arrStopId = paths.stops.find { stop -> stop.id == it.arrivalStopId }?.stopId ?: error("Non existent stop")
             listOf(
                 StopTimeOut(
                     it.tripId, Utils.extractTime(it.departureStopArrivalTime),
-                    Utils.extractTime(it.departureStopDepartureTime), it.departureStopId, stopTimesSequence++
+                    Utils.extractTime(it.departureStopDepartureTime), depStopId, stopTimesSequence++
                 ),
                 StopTimeOut(
                     it.tripId, Utils.extractTime(it.arrivalStopArrivalTime),
-                    Utils.extractTime(it.arrivalStopDepartureTime), it.arrivalStopId, stopTimesSequence++
+                    Utils.extractTime(it.arrivalStopDepartureTime), arrStopId, stopTimesSequence++
                 ),
             )
         }
-        return PathGtfs(outStops, outTrips, outRoutes, outStopTimes, firstPathFootConnections)
+        return PathGtfs(outStops, outTrips, outRoutes, outStopTimes, firstPathFootConnections)*/
+        return PathGtfs(listOf(), listOf(), listOf(), listOf(), listOf())
     }
 }
