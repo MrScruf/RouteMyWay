@@ -43,7 +43,7 @@ create table trip
     id                   integer not null primary key,
     tripId               varchar not null,
     routeId              integer not null,
-    serviceId            int     not null, -- TODO Change to int
+    serviceId            int     not null,
     tripHeadSign         varchar,
     tripShortName        varchar,
     wheelChairAccessible integer,
@@ -79,15 +79,12 @@ alter table footPath
 
 create table tripConnection
 (
-    tripConnectionId           integer not null primary key,
-    departureStopId            integer not null,
-    arrivalStopId              integer not null,
-    tripId                     integer not null,
-    departureStopArrivalTime   integer not null,
-    departureStopDepartureTime integer not null,
-    arrivalStopArrivalTime     integer not null,
-    arrivalStopDepartureTime   integer not null,
-    dtype                      varchar
+    tripConnectionId integer not null primary key,
+    departureStopId  integer not null,
+    arrivalStopId    integer not null,
+    tripId           integer not null,
+    departureTime    integer not null,
+    arrivalTime      integer not null
 );
 
 alter table tripConnection

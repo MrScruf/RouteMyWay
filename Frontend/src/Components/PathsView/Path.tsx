@@ -1,9 +1,9 @@
 import moment from "moment";
-import { Connection, Paths, FootConnection, TripConnection } from "../../Entities";
+import { Connection, PathEntity, FootConnection, TripConnection } from "../../Entities";
 import { FaWalking, FaBus, FaTram, FaSubway, FaTrain, FaShip } from 'react-icons/fa';
 import { MdTram } from 'react-icons/md';
 interface PathViewProps {
-  paths: Paths | null;
+  path: PathEntity;
   index: number;
 }
 
@@ -20,10 +20,8 @@ function addMinutesToTime(time:string, minutesToAdd: number){
     const outMinutes = (minutes+minutesToAdd)%60
     return `${outHours.toString().padStart(2,"0")}:${outMinutes.toString().padStart(2,"0")}:${seconds}`
 }
-
-function Path(props: PathViewProps) {
-  function iconByRoute(connection: TripConnection) {
-    const routeType = routeById(tripById(connection.tripId)?.routeId ?? -1)?.routeTypeId
+ function iconByRoute(connection: TripConnection) {
+    const routeType = connection.trip.route.routeTypeId
     switch (routeType?.routeTypeId) {
       case 0: return <MdTram />
       case 1: return <FaSubway />
@@ -35,55 +33,46 @@ function Path(props: PathViewProps) {
       case 11: return <FaBus />
       case 12: return <MdTram />
     }
-  }
-  function showConnection(connection: Connection) {
-    const tmpTripConn = connection as TripConnection
-    const icon = isFootConnection(connection) ? <FaWalking /> : iconByRoute(tmpTripConn)
-    const fromStop = stopById(connection.departureStopId)?.name
-    const toStop = stopById(connection.arrivalStopId)?.name
+  } 
+   function showConnection(connection: Connection, index: number) {
+    const fromStop = connection.departureStop.name
+    const toStop = connection.arrivalStop.name
     if (isFootConnection(connection)) {
-      return (<li className="connection">
-        {icon} 
+      const footConnection = (connection as FootConnection)
+      return (<li className="connection" key={index}>
+        <FaWalking />
         <div className="data">
         <div>Walking</div>
-        <div>{fromStop} - {toStop} ({(connection as FootConnection).durationInMinutes + " minutes"})</div>
+        <div>{fromStop} - {toStop} ({footConnection.durationInMinutes + " minutes"})</div>
         </div>
       </li>)
     }
-    const trip = tripById(tmpTripConn.tripId)
-    const route = routeById(trip?.routeId ?? -1)
-    return (<li className="connection">
-      {icon}
+    const tripConn = connection as TripConnection
+    const trip = tripConn.trip
+    const route = trip.route
+    return (<li className="connection" key={index}>
+      {iconByRoute(tripConn)}
       <div className="data">
         <div> {route?.routeTypeId.name} - {route?.shortName} ({route?.longName})</div>
         <div>Direction {trip?.tripHeadSign}</div>
-        <div> {fromStop} ({tmpTripConn.depTime}) - {toStop} ({tmpTripConn.arrTime})</div>
+        <div> {fromStop} ({tripConn.departureTime}) - {toStop} ({tripConn.arrivalTime})</div>
       </div>
     </li>)
   }
-  function stopById(id: number) {
-    return props.paths?.stops.find(stop => stop.id == id)
-  }
-  function tripById(id: number) {
-    return props.paths?.trips.find(trip => trip.id == id)
-  }
-  function routeById(id: number) {
-    return props.paths?.routes.find(route => route.id == id)
-  }
-  const path = props.paths?.paths[props.index]
-  const firstTripConnection = (isFootConnection(path?.at(0)) ? path?.at(1) : path?.at(0)) as TripConnection | undefined
-  const lastTripConnection = (isFootConnection(path?.at(-1)) ? path?.at(-2) : path?.at(-1)) as TripConnection | undefined
-  const lastFootConnection = (isFootConnection(path?.at(-1)) ? path?.at(-1) : undefined) as FootConnection | undefined
-  const firstStop = stopById(firstTripConnection?.departureStopId ?? -1)
-  const lastStop = stopById(lastFootConnection?.arrivalStopId ?? lastTripConnection?.arrivalStopId ?? -1)
-  const depTime = firstTripConnection?.depTime
-  const arrTime = addMinutesToTime(lastTripConnection?.arrTime ?? "", lastFootConnection?.durationInMinutes ?? 0)
+function Path(props: PathViewProps) {
+  const firstStop = props.path.connections.at(0)?.departureStop
+  const lastStop = props.path.connections.at(-1)?.arrivalStop 
+  const firstTripConnection = (isFootConnection(props.path.connections.at(0)) ? props.path.connections.at(1) : props.path.connections.at(0)) as TripConnection
+  const lastFootConnection = (isFootConnection(props.path.connections.at(-1)) ? props.path.connections.at(-1) : undefined) as FootConnection | undefined
+  const lastTripConnection = (lastFootConnection ? props.path.connections.at(-2) : props.path.connections.at(-1)) as TripConnection
+  const depTime = firstTripConnection?.departureTime
+  const arrTime = addMinutesToTime(lastTripConnection?.arrivalTime ?? "", lastFootConnection?.durationInMinutes ?? 0)
   return (
-    <li className="path">
+    <li className="path" key={props.index}>
       <h2>{firstStop?.name} - {lastStop?.name} {(depTime && arrTime && `(${depTime} - ${arrTime})`)}</h2>
       <ul>
-        {path?.map((connection) =>
-          showConnection(connection)
+        {props.path.connections.map((connection: Connection, index: number) =>
+          showConnection(connection, index)
         )}
       </ul>
     </li>

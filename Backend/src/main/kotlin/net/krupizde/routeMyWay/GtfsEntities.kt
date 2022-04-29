@@ -14,8 +14,8 @@ data class TripConnectionGtfs(
 ) {
     fun convertToTripConnection(departureStop: Stop, arrivalStop: Stop, trip: Trip, id: Int): TripConnection {
         return TripConnection(
-            departureStop.id, arrivalStop.id, departureStopArrivalTime.toInt(), departureStopDepartureTime.toInt(),
-            arrivalStopArrivalTime.toInt(), arrivalStopDepartureTime.toInt(), trip.id, id
+            departureStop.id, arrivalStop.id, departureStopDepartureTime.toInt(),
+            arrivalStopArrivalTime.toInt(), trip.id, id
         )
     }
 }

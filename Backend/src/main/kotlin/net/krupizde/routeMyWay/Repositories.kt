@@ -14,7 +14,7 @@ import javax.persistence.PersistenceContext
 @Repository
 interface TripConnectionJpaRepository : JpaRepository<TripConnection, Int>;
 @Repository
-interface TripConnectionLightJpaRepository : JpaRepository<TripConnectionBase, Int>;
+interface TripConnectionLightJpaRepository : JpaRepository<TripConnection, Int>;
 @Repository
 interface StopJpaRepository : JpaRepository<Stop, Int> {
     fun findByStopId(stopId: String): Stop?;
@@ -119,8 +119,8 @@ class TripBaseRepository() : GeneralRepository<TripBase, Int, TripLightJpaReposi
 
 @Repository
 class TripConnectionBaseRepository() :
-    GeneralRepository<TripConnectionBase, Int, TripConnectionLightJpaRepository>() {
-    override fun findAll(): List<TripConnectionBase> {
+    GeneralRepository<TripConnection, Int, TripConnectionLightJpaRepository>() {
+    override fun findAll(): List<TripConnection> {
         return jpaRepository.findAll()
     }
 }
@@ -141,4 +141,4 @@ class RouteTypeRepository() : GeneralRepository<RouteType, Int, RouteTypeJpaRepo
 class ServiceDayRepository() : GeneralRepository<ServiceDay, Int, ServiceDayJpaRepository>();
 
 @Repository
-class ServiceDayBaseRepository() : GeneralRepository<ServiceDay, Int, ServiceDayJpaRepository>();
+class ServiceDayBaseRepository() : GeneralRepository<ServiceDayBase, Int, ServiceDayBaseJpaRepository>();

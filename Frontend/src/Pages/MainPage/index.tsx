@@ -1,5 +1,5 @@
 import { ChangeEvent, useEffect, useReducer, useRef, useState } from "react"
-import { Paths, Stop, Vehicle } from "../../Entities"
+import { PathEntity, Stop, Vehicle } from "../../Entities"
 import "./index.css"
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -32,7 +32,7 @@ function MainPage(props: MainPageProps) {
   const [fromSearchFocused, setFromSearchFocused] = useState<boolean>(false)
   const [toSearchFocused, setToSearchFocused] = useState<boolean>(false)
   const [departureTime, setDepartureTime] = useState<Date>(new Date())
-  const [paths, setPaths] = useState<Paths | null>(null)
+  const [paths, setPaths] = useState<Array<PathEntity> | null>(null)
   const [vehicles, setVehicles] = useState<Array<Vehicle>>([])
   const [modalIsOpen, setModalIsOpen] = useState<boolean>(false);
   const [dataUploading, setDataUploading] = useState<boolean>(false);
@@ -116,7 +116,7 @@ function sendFile(){
     params.append("bikesAllowed", bikesAllowed + "")
     params.append("wheelChairsAllowed", wheelchairAccessible + "")
     vehiclesAllowed.length > 0 && params.append("vehiclesAllowed", vehiclesAllowed.map(e=>e.id).join(","))
-    axios.get("/path/json?"+ params,{}).then(response => response.data as Paths).then(json=>setPaths(json)).catch(e => e.response && toast.error(e.response.data.message)).finally(()=>setPathLoading(false))
+    axios.get("/path/json?"+ params,{}).then(response => response.data as Array<PathEntity>).then(json=>setPaths(json)).catch(e => e.response && toast.error(e.response.data.message)).finally(()=>setPathLoading(false))
   }
   ReactModal.setAppElement('#root');
   return (

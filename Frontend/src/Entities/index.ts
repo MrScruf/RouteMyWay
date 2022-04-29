@@ -10,7 +10,7 @@ export interface Stop {
 
 export interface Trip {
   tripId: string;
-  routeId: number;
+  route: Route;
   tripHeadSign: string;
   tripShortName: string;
   wheelChairAccessible: number;
@@ -31,23 +31,20 @@ export interface Route {
 
 export interface Connection {
   name: string;
-  departureStopId: number;
-  arrivalStopId: number;
+  departureStop: Stop;
+  arrivalStop: Stop;
 }
 export interface TripConnection extends Connection {
-  tripId: number;
-  tripConnectionId: number;
-  depTime: string;
-  arrTime: string;
+  trip: Trip;
+  departureTime: string;
+  arrivalTime: string;
 }
 export interface FootConnection extends Connection {
   durationInMinutes: number;
 }
-export interface Paths {
-  stops: Array<Stop>;
-  trips: Array<Trip>;
-  routes: Array<Route>;
-  paths: Array<Array<Connection>>;
+
+export interface PathEntity{
+  connections: Array<Connection>
 }
 export interface Vehicle{
   id: number,

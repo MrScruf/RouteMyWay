@@ -1,14 +1,14 @@
-import { Paths } from "../../Entities";
+import { PathEntity } from "../../Entities";
 import Path from "./Path";
 
 interface PathsViewProps {
-  paths: Paths | null;
+  paths: Array<PathEntity> | null;
 }
 
 function PathsView(props: PathsViewProps) {
   return <section>
     <ul>
-      {props.paths?.paths.map((el,index)=><Path paths={props.paths} index={index}></Path>)}
+      {props.paths?.map((el,index)=><Path path={el} index={index} key={index}></Path>)}
     </ul>
   </section>;
 }

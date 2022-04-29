@@ -15,9 +15,10 @@ class DataProvider(
     private val stopService: StopService,
     private val tripService: TripService,
     private val serviceDayService: ServiceDayService,
+    private val threadSemaphore: ThreadSemaphore
 ) {
     private val logger: Logger = LoggerFactory.getLogger(DataProvider::class.java)
-    var baseTripConnections: List<TripConnectionBase> = listOf()
+    var tripConnections: List<TripConnection> = listOf()
     var footConnections: Map<Int, Set<FootPath>> = mapOf()
     var baseStops: Map<Int, StopBase> = mapOf()
     var baseTrips: Map<Int, TripBase> = mapOf()
@@ -26,18 +27,18 @@ class DataProvider(
     fun getTripConnectionsReversed(
         date: LocalDate,
         bikesAllowed: Boolean = false, wheelChairAccessible: Boolean = false, vehiclesAllowed: Set<Int>? = null
-    ) = baseTripConnections.asReversed().asSequence().filter {
+    ) = tripConnections.asReversed().asSequence().filter {
         (vehiclesAllowed == null || vehiclesAllowed.contains(baseTrips[it.tripId]?.routeTypeId)) &&
                 (!bikesAllowed || baseTrips[it.tripId]?.bikesAllowed == 1) &&
                 (!wheelChairAccessible || baseTrips[it.tripId]?.wheelChairAccessible == 1)
     }.filter { serviceDays[baseTrips[it.tripId]?.serviceId]?.get(date) ?: true }
 
+
     @Synchronized
     fun reloadData() {
-        //TODO - concurrency
         logger.info("Reloading data cache")
         logger.debug("Reloading trip connections")
-        baseTripConnections = tripConnectionsService.findAllLight().sortedBy { it.departureTime }
+        tripConnections = tripConnectionsService.findAllLight().sortedBy { it.departureTime }
         logger.debug("Reloading foot connections")
         val tmpFootConnections = footConnectionsService.findAll()
         val tmpFootConnectionsMap = mutableMapOf<Int, MutableSet<FootPath>>().withDefault { mutableSetOf() }
@@ -67,8 +68,8 @@ class DataProvider(
         System.gc()
     }
 
-    fun reloadIfNotLoaded(){
-        if(baseTrips.isNotEmpty())return;
+    fun reloadIfNotLoaded() {
+        if (baseTrips.isNotEmpty()) return;
         reloadData()
     }
 }

@@ -29,12 +29,24 @@ class Gtfs(
     private val serviceDayService: ServiceDayService,
     private val dataProvider: DataProvider,
     private val utilService: UtilService,
+    private val threadSemaphore: ThreadSemaphore,
     @Value("\${parser.maxDurationFootPathsMinutes:30}") private val maxDurationFootPathsMinutes: Int,
     @Value("\${parser.generateFootPathsFromStops:false}") private val generateFootPathsFromStops: Boolean
 ) {
     private val logger: Logger = LoggerFactory.getLogger(Gtfs::class.java)
 
-    fun loadGtfsData(data: InputStream) {
+
+    fun loadGtfsData(data: InputStream): Boolean {
+        if (!threadSemaphore.value.tryAcquire()) return false;
+        try {
+            load(data)
+        } finally {
+            threadSemaphore.value.release()
+        }
+        return true;
+    }
+
+    private fun load(data: InputStream) {
         cleanDb()
         val zis = ZipInputStream(data)
         var zipEntry = zis.nextEntry
@@ -121,7 +133,6 @@ class Gtfs(
         })
     }
 
-    //TODO - speed this up
     @Transactional
     protected fun cleanDb() {
         logger.info("Deleting all")
@@ -165,7 +176,7 @@ class Gtfs(
                     for (y in i until stops.size) {
                         var distanceInKm = distanceInKm(stops[i], stops[y])
                         if (distanceInKm < 0) continue
-                        distanceInKm *= 1.6
+                        distanceInKm *= 1.35
                         val duration =
                             if (stops[i].stopId == stops[y].stopId) 0 else ceil((distanceInKm / 5) * 60).toInt()
                         if (duration > maxDurationFootPathsMinutes) continue
@@ -228,7 +239,6 @@ class Gtfs(
         return routeTypeService.findAll().associateBy { it.routeTypeId }
     }
 
-    //TODO - add data to connection to allow reconstruction back to StopTime
     private fun convertGtfsToConnections(stopTimeGtfs: List<StopTimeGtfs>): List<TripConnectionGtfs> {
         logger.info("Converting GTFS stop times to connections")
         if (stopTimeGtfs.isEmpty()) throw IllegalStateException("Stop times are empty")
@@ -259,8 +269,8 @@ class Gtfs(
             output.add(
                 StopTimeGtfs(
                     stopTime.getValue("trip_id"),
-                    Utils.stringToTime(stopTime.getValue("arrival_time")),
-                    Utils.stringToTime(stopTime.getValue("departure_time")),
+                    Utils.stringToUintTimeReprezentation(stopTime.getValue("arrival_time")),
+                    Utils.stringToUintTimeReprezentation(stopTime.getValue("departure_time")),
                     stopTime.getValue("stop_id"),
                     stopTime.getValue("stop_sequence").toInt()
                 )

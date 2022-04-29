@@ -72,7 +72,7 @@ class UtilService() {
 @Service
 class TripConnectionsService(val tripConnectionBaseRepository: TripConnectionBaseRepository) :
     GeneralService<TripConnection, Int, TripConnectionRepository>() {
-    fun findAllLight(): List<TripConnectionBase> {
+    fun findAllLight(): List<TripConnection> {
         return tripConnectionBaseRepository.findAll()
     }
 }
