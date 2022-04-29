@@ -136,7 +136,13 @@ class Gtfs(
     @Transactional
     protected fun cleanDb() {
         logger.info("Deleting all")
-        utilService.truncateAll()
+        utilService.truncateConnections()
+        serviceDayService.deleteAll()
+        tripService.deleteAll()
+        routeService.deleteAll()
+        routeTypeService.deleteAll()
+        stopService.deleteAll()
+        locationTypeService.deleteAll()
         logger.info("Deleted all")
     }
 
@@ -176,7 +182,7 @@ class Gtfs(
                     for (y in i until stops.size) {
                         var distanceInKm = distanceInKm(stops[i], stops[y])
                         if (distanceInKm < 0) continue
-                        distanceInKm *= 1.35
+                        distanceInKm *= 1.4
                         val duration =
                             if (stops[i].stopId == stops[y].stopId) 0 else ceil((distanceInKm / 5) * 60).toInt()
                         if (duration > maxDurationFootPathsMinutes) continue
@@ -249,8 +255,8 @@ class Gtfs(
             if (prevStopTime.tripId == stopTime.tripId) {
                 tripConnections.add(
                     TripConnectionGtfs(
-                        prevStopTime.stopId, stopTime.stopId, prevStopTime.arrivalTime,
-                        prevStopTime.departureTime, stopTime.arrivalTime, stopTime.departureTime, stopTime.tripId
+                        prevStopTime.stopId, stopTime.stopId, prevStopTime.departureTime, stopTime.arrivalTime,
+                        stopTime.tripId
                     )
                 )
             }

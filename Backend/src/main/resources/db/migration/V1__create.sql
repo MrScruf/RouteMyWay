@@ -16,8 +16,7 @@ create table route
     routeId     varchar not null,
     shortName   varchar,
     longName    varchar,
-    routeTypeId integer not null,
-    dtype       varchar
+    routeTypeId integer not null
 );
 
 alter table route
@@ -31,8 +30,7 @@ create table stop
     latitude           float,
     longitude          float,
     locationTypeId     integer,
-    wheelChairBoarding integer,
-    dtype              varchar
+    wheelChairBoarding integer
 );
 
 alter table stop
@@ -47,8 +45,7 @@ create table trip
     tripHeadSign         varchar,
     tripShortName        varchar,
     wheelChairAccessible integer,
-    bikesAllowed         integer,
-    dtype                varchar
+    bikesAllowed         integer
 );
 
 alter table trip
@@ -60,8 +57,7 @@ create table serviceDay
     serviceId    varchar not null,
     serviceIdInt int     not null,
     serviceDay   date,
-    willGo       boolean,
-    dtype        varchar
+    willGo       boolean
 );
 
 create table footPath

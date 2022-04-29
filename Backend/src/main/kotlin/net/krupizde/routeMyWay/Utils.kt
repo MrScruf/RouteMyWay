@@ -56,7 +56,7 @@ class Utils {
         fun extractSecondsOfDayFromUintTimeReprezentation(time: UInt): UInt {
             if (time == UInt.MAX_VALUE) return time;
             val lowerBits = time and 255u
-            val higherBits = time shr 13 shl 8
+            val higherBits = time shr  13 shl 8
             return higherBits or lowerBits
         }
 

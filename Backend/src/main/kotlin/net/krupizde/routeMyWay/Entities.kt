@@ -104,7 +104,7 @@ data class Trip(
     val tripShortName: String?,
     val wheelChairAccessible: Int?,
     val bikesAllowed: Int?,
-    @Id  val id: Int = 0
+    @Id val id: Int = 0
 )
 
 
@@ -153,10 +153,9 @@ data class Path(val connections: List<Connection>)
 data class ParetoProfile(
     val profiles: MutableList<StopProfile> = mutableListOf(StopProfile())
 ) {
-    //TODO - prekontrolovat meze toho, kde se hleda dominance
     fun dominates(vector: StopProfile): Boolean {
         val fromIndex = profiles.indexOfFirst { it.departureTime >= vector.departureTime }
-        for (profile in profiles.subList(fromIndex, profiles.size)) {
+        for (profile in profiles.listIterator(fromIndex)) {
             if (vector.arrivalTime < profile.arrivalTime) break;
             if (profile.dominates(vector)) return true;
         }

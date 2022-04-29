@@ -116,7 +116,7 @@ function sendFile(){
     params.append("bikesAllowed", bikesAllowed + "")
     params.append("wheelChairsAllowed", wheelchairAccessible + "")
     vehiclesAllowed.length > 0 && params.append("vehiclesAllowed", vehiclesAllowed.map(e=>e.id).join(","))
-    axios.get("/path/json?"+ params,{}).then(response => response.data as Array<PathEntity>).then(json=>setPaths(json)).catch(e => e.response && toast.error(e.response.data.message)).finally(()=>setPathLoading(false))
+    axios.get("/path/json?"+ params,{}).then(response => response.data as Array<PathEntity>).then(json=>setPaths(json)).catch(e => e.response && toast.error(e.response.data.message) && setPaths(null)).finally(()=>setPathLoading(false))
   }
   ReactModal.setAppElement('#root');
   return (

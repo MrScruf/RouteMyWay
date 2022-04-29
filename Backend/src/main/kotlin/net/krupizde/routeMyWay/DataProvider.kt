@@ -14,8 +14,7 @@ class DataProvider(
     private val footConnectionsService: FootConnectionsService,
     private val stopService: StopService,
     private val tripService: TripService,
-    private val serviceDayService: ServiceDayService,
-    private val threadSemaphore: ThreadSemaphore
+    private val serviceDayService: ServiceDayService
 ) {
     private val logger: Logger = LoggerFactory.getLogger(DataProvider::class.java)
     var tripConnections: List<TripConnection> = listOf()
@@ -34,6 +33,17 @@ class DataProvider(
     }.filter { serviceDays[baseTrips[it.tripId]?.serviceId]?.get(date) ?: true }
 
 
+    fun getTripConnections(
+        date: LocalDate,
+        bikesAllowed: Boolean = false, wheelChairAccessible: Boolean = false, vehiclesAllowed: Set<Int>? = null
+    ) =
+        tripConnections.asSequence().filter {
+            (vehiclesAllowed == null || vehiclesAllowed.contains(baseTrips[it.tripId]?.routeTypeId)) &&
+                    (!bikesAllowed || baseTrips[it.tripId]?.bikesAllowed == 1) &&
+                    (!wheelChairAccessible || baseTrips[it.tripId]?.wheelChairAccessible == 1)
+        }.filter { serviceDays[baseTrips[it.tripId]?.serviceId]?.get(date) ?: true }
+
+
     @Synchronized
     fun reloadData() {
         logger.info("Reloading data cache")
@@ -42,15 +52,12 @@ class DataProvider(
         logger.debug("Reloading foot connections")
         val tmpFootConnections = footConnectionsService.findAll()
         val tmpFootConnectionsMap = mutableMapOf<Int, MutableSet<FootPath>>().withDefault { mutableSetOf() }
-        for (footConnection in tmpFootConnections) {
+        tmpFootConnections.forEach {
             //After loading one-sided footpath from DB, save the footpath from both sides
-            tmpFootConnectionsMap.getOrPut(footConnection.departureStopId) { mutableSetOf() }.add(footConnection)
-            if (footConnection.arrivalStopId != footConnection.departureStopId)
-                tmpFootConnectionsMap.getOrPut(footConnection.arrivalStopId) { mutableSetOf() }.add(
-                    FootPath(
-                        footConnection.arrivalStopId, footConnection.departureStopId, footConnection.durationInMinutes
-                    )
-                )
+            tmpFootConnectionsMap.getOrPut(it.departureStopId) { mutableSetOf() }.add(it)
+            tmpFootConnectionsMap.getOrPut(it.arrivalStopId) { mutableSetOf() }.add(
+                FootPath(it.arrivalStopId, it.departureStopId, it.durationInMinutes)
+            )
         }
         footConnections = tmpFootConnectionsMap.toMap()
         logger.debug("Reloading service days")

@@ -38,6 +38,7 @@ function addMinutesToTime(time:string, minutesToAdd: number){
     const fromStop = connection.departureStop.name
     const toStop = connection.arrivalStop.name
     if (isFootConnection(connection)) {
+      if(connection.arrivalStop.name == connection.departureStop.name)return null;
       const footConnection = (connection as FootConnection)
       return (<li className="connection" key={index}>
         <FaWalking />

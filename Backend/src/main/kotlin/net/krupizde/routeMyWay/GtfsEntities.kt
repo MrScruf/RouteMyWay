@@ -6,16 +6,13 @@ import java.time.LocalDate
 data class TripConnectionGtfs(
     val departureStopId: String,
     val arrivalStopId: String,
-    val departureStopArrivalTime: UInt,
-    val departureStopDepartureTime: UInt,
-    val arrivalStopArrivalTime: UInt,
-    val arrivalStopDepartureTime: UInt,
+    val departureTime: UInt,
+    val arrivalTime: UInt,
     val tripId: String,
 ) {
     fun convertToTripConnection(departureStop: Stop, arrivalStop: Stop, trip: Trip, id: Int): TripConnection {
         return TripConnection(
-            departureStop.id, arrivalStop.id, departureStopDepartureTime.toInt(),
-            arrivalStopArrivalTime.toInt(), trip.id, id
+            departureStop.id, arrivalStop.id, departureTime.toInt(), arrivalTime.toInt(), trip.id, id
         )
     }
 }
