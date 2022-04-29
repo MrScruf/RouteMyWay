@@ -1,14 +1,15 @@
 package net.krupizde.routeMyWay
 
-class TestUtils {
-    companion object {
-        private const val TRAVEL_MODE_WALKING = "WALKING"
-        fun summarizePathways(steps: List<ResponseEntityRouteStep>){
-            var step: ResponseEntityRouteStep = steps.first();
-            var index = 0
-            while(step.travelMode == TRAVEL_MODE_WALKING){
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
 
-            }
-        }
+object TestUtils {
+    const val TRAVEL_MODE_WALKING = "WALKING"
+    const val TRAVEL_MODE_TRANSIT = "TRANSIT"
+
+    fun timeFromSeconds(seconds: Int): Time{
+        val tmpTime = LocalDateTime.ofInstant(Instant.ofEpochSecond(seconds.toLong()), ZoneId.systemDefault())
+        return Time(tmpTime.hour, tmpTime.minute, tmpTime.second)
     }
 }

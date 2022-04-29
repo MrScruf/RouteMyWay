@@ -28,7 +28,12 @@ data class TransitDetails(
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-data class TransitDetailsStop(val name: String)
+data class TransitDetailsStop(val name: String, val location: TransitDetailsStopLocation)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class TransitDetailsStopLocation(val lat: Double, val lng: Double)
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class Value(val value: Int)
+
+data class Walking(val duration: Int, val distance: Int)
