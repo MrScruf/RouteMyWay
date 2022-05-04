@@ -22,6 +22,7 @@ spring:
 parser:
   maxDurationFootPathsMinutes: 30
   generateFootPathsFromStops: true
+  distanceMultiplicatorConstant: 1.45
 logging:
   file:
     path: ./log

@@ -5,6 +5,8 @@ import io.ktor.client.engine.cio.*
 import io.ktor.client.features.json.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.runBlocking
+import net.krupizde.routeMyWay.Business.CSA
+import net.krupizde.routeMyWay.Business.DataProvider
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
