@@ -61,14 +61,14 @@ class UtilService() {
         entityManager.createNativeQuery("truncate table tripConnection").executeUpdate()
         entityManager.createNativeQuery("truncate table footPath").executeUpdate()
     }
+
+    fun truncateServiceDayTripRel(){
+        entityManager.createNativeQuery("truncate table serviceDayTripRel").executeUpdate()
+    }
 }
 
 @Service
-class TripConnectionsService(val tripConnectionBaseRepository: TripConnectionBaseRepository) :
-    GeneralService<TripConnection, Int, TripConnectionRepository>() {
-    fun findAllLight(): List<TripConnection> {
-        return tripConnectionBaseRepository.findAll()
-    }
+class TripConnectionsService() : GeneralService<TripConnection, Int, TripConnectionRepository>() {
 }
 
 @Service
@@ -115,7 +115,7 @@ class ServiceDayService(
         return serviceDayBaseRepository.findAll();
     }
 
-    fun saveServiceDayTripRel(serviceDayTripRel: ServiceDayTripRel) {
-        serviceDayTripRelRepository.save(serviceDayTripRel)
+    fun saveAllServiceDayTripRel(serviceDayTripRels: List<ServiceDayTripRel>) {
+        serviceDayTripRelRepository.saveAll(serviceDayTripRels)
     }
 }

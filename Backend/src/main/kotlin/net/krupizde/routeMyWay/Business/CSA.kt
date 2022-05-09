@@ -193,7 +193,6 @@ class CSA(
         var departureTimeTmp = departureTime
         do {
             val durationDirectly = durationsToTarget.getValue(departureStopIdTmp).toDouble()
-            val profilesTmm = profiles[departureStopIdTmp]?.profiles;
             val profile = profiles[departureStopIdTmp]?.profiles?.firstOrNull { it.departureTime >= departureTimeTmp }
                 ?: StopProfile()
             val tripLength =
@@ -215,7 +214,7 @@ class CSA(
             val route = routeService.findById(tripDb.routeId) ?: error("Non-existent route")
             val tripOut = OutTrip(
                 tripDb.tripId, route, tripDb.tripHeadSign, tripDb.tripShortName,
-                tripDb.wheelChairAccessible, tripDb.bikesAllowed, tripDb.id
+                tripDb.wheelChairAccessible, tripDb.bikesAllowed
             )
             val depTime = Utils.extractTimeFromUintTimeReprezentation(enterConnection.departureTime)
             val arrTime = Utils.extractTimeFromUintTimeReprezentation(exitConnection.arrivalTime)
@@ -228,7 +227,7 @@ class CSA(
             connections.add(tripConnection)
             departureStopIdTmp = exitConnection.arrivalStopId
             departureTimeTmp = exitConnection.arrivalTime
-        } while (true)//exitConnection.arrivalStopId != arrivalStopId
+        } while (exitConnection.arrivalStopId != arrivalStopId)
         return Path(connections)
     }
 }

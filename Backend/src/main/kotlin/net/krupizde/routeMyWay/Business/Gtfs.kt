@@ -51,7 +51,6 @@ class Gtfs(
     }
 
     private fun load(data: InputStream) {
-        cleanDb()
         val zis = ZipInputStream(data)
         var zipEntry = zis.nextEntry
         var stops: List<StopGtfs> = listOf();
@@ -76,7 +75,7 @@ class Gtfs(
             zipEntry = zis.nextEntry;
         }
         zis.close()
-        val tripConnections = convertGtfsToConnections(stopTimeGtfs)
+        val tripConnections = convertStopTimesToConnections(stopTimeGtfs)
         val serviceDays = generateServiceDays(calendarGtfs, calendarDatesGtfs)
         saveAll(stops, routes, trips, pathWays, tripConnections, serviceDays)
         logger.info("Finished parsing and saving data")
@@ -89,17 +88,22 @@ class Gtfs(
         stopsGtfs: List<StopGtfs>, routesGtfs: List<RouteGtfs>, tripsGtfs: List<TripGtfs>,
         pathWaysGtfs: Set<FootPathGtfs>, tripConnectionsGtfs: List<TripConnectionGtfs>, serviceDays: List<ServiceDay>
     ) {
-        val locationTypes = createLocationTypes()
-        val routeTypes = createRouteTypes()
+        cleanDb()
+        val locationTypesById = createLocationTypes()
+        val routeTypesById = createRouteTypes()
 
         logger.info("Saving stops")
+        val stopsGtfsByStopId = stopsGtfs.associateBy { it.stopId }
         val stops = stopService.saveAll(stopsGtfs.mapIndexed { index, it ->
-            it.convertToStop(locationTypes.getValue(it.locationTypeId ?: 0), index)
+            val wheelChairAccessible =
+                if (it.wheelChairBoarding == 0 && it.parentStopId != null) stopsGtfsByStopId[it.parentStopId]?.wheelChairBoarding
+                    ?: it.wheelChairBoarding else it.wheelChairBoarding
+            it.convertToStop(locationTypesById.getValue(it.locationTypeId ?: 0), wheelChairAccessible, index)
         }).associateBy { it.stopId }
 
         logger.info("Saving routes")
         val routes = routeService.saveAll(routesGtfs.mapIndexed { index, it ->
-            it.convertToRoute(routeTypes.getValue(it.routeTypeId), index)
+            it.convertToRoute(routeTypesById.getValue(it.routeTypeId), index)
         }).associateBy { it.routeId }
 
         logger.info("Saving service days")
@@ -113,36 +117,29 @@ class Gtfs(
                 routes.getValue(it.routeId), index, serviceDaysByServiceId.getValue(it.serviceId).serviceIdInt
             )
         })
-        logger.info("Saving relations betweend trips and serviceDays")
-        runBlocking {
-            savedTrips.forEach { trip ->
-                launch(Dispatchers.IO) {
-                    serviceDaysByServiceIdInt[trip.serviceId]?.forEach {
-                        serviceDayService.saveServiceDayTripRel(ServiceDayTripRel(trip.id, it))
-                    }
-                }
-            }
+        logger.info("Generating relations between trips and serviceDays")
+        val relations = savedTrips.flatMap { trip ->
+            serviceDaysByServiceIdInt[trip.serviceId]?.map { ServiceDayTripRel(trip.id, it) }?.asIterable() ?: listOf()
         }
+        logger.info("Saving relations between trips and serviceDays")
+        serviceDayService.saveAllServiceDayTripRel(relations)
+
         val tripsById = savedTrips.associateBy { it.tripId }
         logger.info("Saving trip connections")
-        runBlocking {
-            tripConnectionsGtfs.mapIndexed { index, it ->
-                it.convertToTripConnection(
-                    stops.getValue(it.departureStopId), stops.getValue(it.arrivalStopId), tripsById.getValue(it.tripId),
-                    index
-                )
-            }.forEach { launch(Dispatchers.IO) { tripConnectionsService.save(it) } }
+        val tripConnections = tripConnectionsGtfs.mapIndexed { index, it ->
+            it.convertToTripConnection(
+                stops.getValue(it.departureStopId), stops.getValue(it.arrivalStopId), tripsById.getValue(it.tripId),
+                index
+            )
         }
+        tripConnectionsService.saveAll(tripConnections)
 
         if (generateFootPathsFromStops)
             runBlocking { generateAllPathWays(stops.values.toList()) }
 
         logger.info("Saving foot connections")
         footTripConnectionsService.saveAll(pathWaysGtfs.map {
-            it.convertToFootPath(
-                stops.getValue(it.departureStopId),
-                stops.getValue(it.arrivalStopId)
-            )
+            it.convertToFootPath(stops.getValue(it.departureStopId), stops.getValue(it.arrivalStopId))
         })
     }
 
@@ -150,6 +147,7 @@ class Gtfs(
     protected fun cleanDb() {
         logger.info("Deleting all")
         utilService.truncateConnections()
+        utilService.truncateServiceDayTripRel()
         serviceDayService.deleteAll()
         tripService.deleteAll()
         routeService.deleteAll()
@@ -189,7 +187,7 @@ class Gtfs(
         val index = AtomicInteger();
         coroutineScope {
             for (i in stops.indices) {
-                logger.debug("Started generating from stop $i")
+                logger.debug("Started generating pathways from stop $i")
                 launch(Dispatchers.Default) {
                     val outPathWays = mutableListOf<FootPath>()
                     for (y in i until stops.size) {
@@ -258,7 +256,7 @@ class Gtfs(
         return routeTypeService.findAll().associateBy { it.routeTypeId }
     }
 
-    private fun convertGtfsToConnections(stopTimeGtfs: List<StopTimeGtfs>): List<TripConnectionGtfs> {
+    private fun convertStopTimesToConnections(stopTimeGtfs: List<StopTimeGtfs>): List<TripConnectionGtfs> {
         logger.info("Converting GTFS stop times to connections")
         if (stopTimeGtfs.isEmpty()) throw IllegalStateException("Stop times are empty")
         val sortedStopTimes = stopTimeGtfs.sortedWith(compareBy({ it.tripId }, { it.stopSequence }))
@@ -348,12 +346,8 @@ class Gtfs(
         for (stop in rows) {
             output.add(
                 StopGtfs(
-                    stop.getValue("stop_id"),
-                    stop["stop_name"],
-                    stop["stop_lat"]?.toDouble(),
-                    stop["stop_lon"]?.toDouble(),
-                    stop["location_type"]?.toInt(),
-                    stop["wheelchair_boarding"]?.toInt()
+                    stop.getValue("stop_id"), stop["stop_name"], stop["parent_station"], stop["stop_lat"]?.toDouble(),
+                    stop["stop_lon"]?.toDouble(), stop["location_type"]?.toInt(), stop["wheelchair_boarding"]?.toInt()
                 )
             )
         }

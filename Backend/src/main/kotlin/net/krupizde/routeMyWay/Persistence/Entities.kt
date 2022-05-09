@@ -1,5 +1,7 @@
 package net.krupizde.routeMyWay
 
+import com.fasterxml.jackson.annotation.JsonIgnore
+import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.core.JsonGenerator
 import com.fasterxml.jackson.databind.SerializerProvider
 import com.fasterxml.jackson.databind.annotation.JsonSerialize
@@ -31,12 +33,13 @@ data class ServiceDay(
 )
 
 @Entity
-@Table(name= "ServiceDayTripRel")
+@Table(name = "ServiceDayTripRel")
 @IdClass(ServiceDayTripRelId::class)
 data class ServiceDayTripRel(
     @Id val tripId: Int = 0,
     @Id val serviceDayId: Int = 0
 )
+
 data class ServiceDayTripRelId(
     val tripId: Int = 0,
     val serviceDayId: Int = 0
@@ -49,7 +52,7 @@ data class TripConnection(
     @Column(name = "departureTime") val departureTimeDb: Int,
     @Column(name = "arrivalTime") val arrivalTimeDb: Int,
     val tripId: Int,
-    @Id val tripConnectionId: Int = 0
+    @Id @Column(name = "id") val tripConnectionId: Int = 0
 ) {
     val departureTime: UInt
         get() = departureTimeDb.toUInt();
@@ -88,7 +91,7 @@ data class Stop(
     val longitude: Double?,
     @ManyToOne @JoinColumn(name = "locationTypeId") val locationType: LocationType,
     val wheelChairBoarding: Int?,
-    @Id @Column(name = "id") val id: Int = 0
+    @JsonIgnore @Id @Column(name = "id") val id: Int = 0
 )
 
 @Entity
@@ -124,8 +127,8 @@ data class Route(
     val routeId: String,
     val shortName: String?,
     val longName: String?,
-    @ManyToOne(optional = false) @JoinColumn(name = "routeTypeId") val routeTypeId: RouteType,
-    @Id val id: Int = 0
+    @ManyToOne(optional = false) @JoinColumn(name = "routeTypeId") val routeType: RouteType,
+    @JsonIgnore @Id val id: Int = 0
 )
 
 @Entity
@@ -139,7 +142,6 @@ data class OutTrip(
     val tripShortName: String?,
     val wheelChairAccessible: Int?,
     val bikesAllowed: Int?,
-    val id: Int = 0
 )
 
 open class Connection(val departureStop: Stop, val arrivalStop: Stop, val name: String);

@@ -48,7 +48,7 @@ class DataProvider(
     fun reloadData() {
         logger.info("Reloading data cache")
         logger.debug("Reloading trip connections")
-        tripConnections = tripConnectionsService.findAllLight().sortedBy { it.departureTime }
+        tripConnections = tripConnectionsService.findAll().sortedBy { it.departureTime }
         logger.debug("Reloading foot connections")
         val tmpFootConnections = footConnectionsService.findAll()
         val tmpFootConnectionsMap = mutableMapOf<Int, MutableSet<FootPath>>().withDefault { mutableSetOf() }

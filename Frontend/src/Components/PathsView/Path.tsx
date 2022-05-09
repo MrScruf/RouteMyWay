@@ -1,4 +1,3 @@
-import moment from "moment";
 import { Connection, PathEntity, FootConnection, TripConnection } from "../../Entities";
 import { FaWalking, FaBus, FaTram, FaSubway, FaTrain, FaShip } from 'react-icons/fa';
 import { MdTram } from 'react-icons/md';
@@ -21,7 +20,7 @@ function addMinutesToTime(time:string, minutesToAdd: number){
     return `${outHours.toString().padStart(2,"0")}:${outMinutes.toString().padStart(2,"0")}:${seconds}`
 }
  function iconByRoute(connection: TripConnection) {
-    const routeType = connection.trip.route.routeTypeId
+    const routeType = connection.trip.route.routeType
     switch (routeType?.routeTypeId) {
       case 0: return <MdTram />
       case 1: return <FaSubway />
@@ -38,7 +37,7 @@ function addMinutesToTime(time:string, minutesToAdd: number){
     const fromStop = connection.departureStop.name
     const toStop = connection.arrivalStop.name
     if (isFootConnection(connection)) {
-      if(connection.arrivalStop.name == connection.departureStop.name)return null;
+      if(connection.arrivalStop.stopId === connection.departureStop.stopId)return null;
       const footConnection = (connection as FootConnection)
       return (<li className="connection" key={index}>
         <FaWalking />
@@ -54,7 +53,7 @@ function addMinutesToTime(time:string, minutesToAdd: number){
     return (<li className="connection" key={index}>
       {iconByRoute(tripConn)}
       <div className="data">
-        <div> {route?.routeTypeId.name} - {route?.shortName} ({route?.longName})</div>
+        <div> {route?.routeType.name} - {route?.shortName} ({route?.longName})</div>
         <div>Direction {trip?.tripHeadSign}</div>
         <div> {fromStop} ({tripConn.departureTime}) - {toStop} ({tripConn.arrivalTime})</div>
       </div>

@@ -20,12 +20,13 @@ data class TripConnectionGtfs(
 data class StopGtfs(
     val stopId: String,
     val name: String?,
+    val parentStopId: String?,
     val latitude: Double?,
     val longitude: Double?,
     val locationTypeId: Int?,
     val wheelChairBoarding: Int?,
 ) {
-    fun convertToStop(locationType: LocationType, id: Int): Stop {
+    fun convertToStop(locationType: LocationType, wheelChairBoarding: Int?, id: Int): Stop {
         return Stop(stopId, name, latitude, longitude, locationType, wheelChairBoarding, id)
     }
 }

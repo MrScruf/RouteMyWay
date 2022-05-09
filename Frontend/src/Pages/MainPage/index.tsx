@@ -1,4 +1,4 @@
-import { ChangeEvent, useEffect, useReducer, useRef, useState } from "react"
+import { ChangeEvent, useEffect, useState } from "react"
 import { PathEntity, Stop, Vehicle } from "../../Entities"
 import "./index.css"
 import { ToastContainer, toast } from 'react-toastify';
@@ -11,6 +11,7 @@ import PathsView from "../../Components/PathsView";
 import ReactModal from 'react-modal';
 import ReactLoading from "react-loading";
 import { MdClose } from "react-icons/md";
+import { findPath, loadStopsByName, loadVehiclesFromServer, sendFileToServer } from "../../Services/DataService";
 const SEARCH_DELAY_MS = 400
 
 interface MainPageProps {
@@ -41,8 +42,7 @@ function MainPage(props: MainPageProps) {
   const [password, setPassword] = useState<string>(""); 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
-      console.log(searchTermFrom)
-      axios.get(`/stops?name=${searchTermFrom}`, {}).then(response => response.data).then(json => setFromStops(json)).catch(e => toast.error("Could not load stops"))
+      loadStopsByName(searchTermFrom).then(stops=>setFromStops(stops)).catch(e => toast.error("Could not load stops"))
     }, SEARCH_DELAY_MS)
     return () => {
       clearTimeout(delayDebounceFn)
@@ -51,8 +51,7 @@ function MainPage(props: MainPageProps) {
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
-      console.log(searchTermTo)
-      axios.get(`/stops?name=${searchTermTo}`, {}).then(response => response.data).then(json => setToStops(json)).catch(e => toast.error("Could not load stops"))
+      loadStopsByName(searchTermTo).then(json => setToStops(json)).catch(e => toast.error("Could not load stops"))
     }, SEARCH_DELAY_MS)
     return () => clearTimeout(delayDebounceFn)
   }, [searchTermTo])
@@ -71,15 +70,11 @@ function MainPage(props: MainPageProps) {
     setFromSearchFocused(focusFrom)
     setToSearchFocused(focusTo)
   }
-  function loadVehicles(){
-    axios.get("/vehicles")
-    .then(response=>response.data)
-    .then(data=>setVehicles(data.map((v:any)=>({name: v.name, id: v.routeTypeId}))))
-    .catch(e=>toast.error("Could not load vehicles"))
-  }
   useEffect(()=>{
-    loadVehicles()
+    loadVehiclesFromServer().then(vehicles=>setVehicles(vehicles))
+    .catch(e=>toast.error("Could not load vehicles"))
   },[])
+
   function convertDate(){
     return (new Date(departureTime.getTime() - departureTime.getTimezoneOffset() * 60000).toISOString()).slice(0, -8);
   }
@@ -90,14 +85,7 @@ function sendFile(){
     return
   }
   setDataUploading(true)
-  const formData = new FormData()
-  formData.append("file", fileToUpload)
-  formData.append("password", password)
-  axios.post("/load", formData,{ headers: {
-      'Content-Type': 'multipart/form-data'
-    }
-  })
-  .then(response => response.data)
+  sendFileToServer(fileToUpload, password)
   .then(mess=>toast.success(mess))
   .catch(e=>{if(e.response){
     if(e.response.status == 401)toast.error("Unauthorized")
@@ -108,15 +96,8 @@ function sendFile(){
 
   function sendRequest(){
     setPathLoading(true)
-    const params = new URLSearchParams({})
-    params.append("departureStopId", from?.stopId ?? "")
-    params.append("arrivalStopId", to?.stopId ?? "")
-    params.append("departureTime", convertDate())
-    params.append("numberOfPaths", numberOfPaths.toString())
-    params.append("bikesAllowed", bikesAllowed + "")
-    params.append("wheelChairsAllowed", wheelchairAccessible + "")
-    vehiclesAllowed.length > 0 && params.append("vehiclesAllowed", vehiclesAllowed.map(e=>e.id).join(","))
-    axios.get("/path/json?"+ params,{}).then(response => response.data as Array<PathEntity>).then(json=>setPaths(json)).catch(e => e.response && toast.error(e.response.data.message) && setPaths(null)).finally(()=>setPathLoading(false))
+    findPath(from?.stopId ?? "", to?.stopId ?? "", convertDate(), numberOfPaths, bikesAllowed, wheelchairAccessible, vehiclesAllowed.map(e=>e.id))
+    .then(paths=>setPaths(paths)).catch(e => e.response && toast.error(e.response.data.message) && setPaths(null)).finally(()=>setPathLoading(false))
   }
   ReactModal.setAppElement('#root');
   return (

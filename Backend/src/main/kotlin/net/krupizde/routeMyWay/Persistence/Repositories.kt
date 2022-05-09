@@ -49,7 +49,6 @@ abstract class GeneralRepository<Entity : Any, Id : Any, Repository : JpaReposit
 
 @Repository
 class TripConnectionRepository() : GeneralRepository<TripConnection, Int, TripConnectionJpaRepository>() {
-
 }
 
 @Repository
@@ -74,15 +73,6 @@ class TripBaseRepository() : GeneralRepository<TripBase, Int, TripLightJpaReposi
         return jpaRepository.findAllMapping()
     }
 }
-
-@Repository
-class TripConnectionBaseRepository() :
-    GeneralRepository<TripConnection, Int, TripConnectionLightJpaRepository>() {
-    override fun findAll(): List<TripConnection> {
-        return jpaRepository.findAll()
-    }
-}
-
 @Repository
 class FootConnectionRepository() : GeneralRepository<FootPath, FootPathId, FootConnectionJpaRepository>();
 

@@ -8,7 +8,7 @@ interface SearchResultViewProps {
 
 function SearchResultView(props: SearchResultViewProps) {
     return <ul className={props.listClassName ?? ""} >
-        {props.items.filter(it=>it.name.length>0).map((it, index) => <li className={props.listItemClassName ?? ""} key={it.id} onMouseDown={(e) => props.selectItem(index)}>({it.stopId}) {it.name}</li>)}
+        {props.items.filter(it=>it.name.length>0).map((it, index) => <li className={props.listItemClassName ?? ""} key={it.stopId} onMouseDown={(e) => props.selectItem(index)}>({it.stopId}) {it.name}</li>)}
     </ul>
 }
 

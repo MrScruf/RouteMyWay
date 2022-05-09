@@ -2,7 +2,6 @@ import SearchResult from "../Components/SearchResultView";
 
 
 export interface Stop {
-  id: number;
   name: string;
   wheelChairBoarding: number;
   stopId: string;
@@ -15,7 +14,6 @@ export interface Trip {
   tripShortName: string;
   wheelChairAccessible: number;
   bikesAllowed: number;
-  id: number;
 }
 export interface RouteType {
   routeTypeId: number;
@@ -25,8 +23,7 @@ export interface Route {
   routeId: string;
   shortName: string;
   longName: string;
-  routeTypeId: RouteType;
-  id: number;
+  routeType: RouteType;
 }
 
 export interface Connection {

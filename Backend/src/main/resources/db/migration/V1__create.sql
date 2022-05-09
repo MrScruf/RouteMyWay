@@ -20,7 +20,7 @@ create table route
 );
 
 alter table route
-    add foreign key (routeTypeId) references routeType (routeTypeId);
+    add foreign key (routeTypeId) references routeType (routeTypeId) on DELETE CASCADE;
 
 create table stop
 (
@@ -68,9 +68,9 @@ create table serviceDayTripRel
 );
 
 alter table serviceDayTripRel
-    add foreign key (serviceDayId) references serviceDay (id);
+    add foreign key (serviceDayId) references serviceDay (id) on DELETE CASCADE ;
 alter table serviceDayTripRel
-    add foreign key (tripId) references trip (id);
+    add foreign key (tripId) references trip (id) on DELETE CASCADE;
 
 create table footPath
 (
@@ -81,23 +81,23 @@ create table footPath
 );
 
 alter table footPath
-    ADD FOREIGN KEY (departureStopId) REFERENCES stop (id);
+    ADD FOREIGN KEY (departureStopId) REFERENCES stop (id) on DELETE CASCADE;
 alter table footPath
-    ADD FOREIGN KEY (arrivalStopId) REFERENCES stop (id);
+    ADD FOREIGN KEY (arrivalStopId) REFERENCES stop (id) on DELETE CASCADE;
 
 create table tripConnection
 (
-    tripConnectionId integer not null primary key,
-    departureStopId  integer not null,
-    arrivalStopId    integer not null,
-    tripId           integer not null,
-    departureTime    integer not null,
-    arrivalTime      integer not null
+    id              integer not null primary key,
+    departureStopId integer not null,
+    arrivalStopId   integer not null,
+    tripId          integer not null,
+    departureTime   integer not null,
+    arrivalTime     integer not null
 );
 
 alter table tripConnection
-    ADD FOREIGN KEY (departureStopId) REFERENCES stop (id);
+    ADD FOREIGN KEY (departureStopId) REFERENCES stop (id) on DELETE CASCADE;
 alter table tripConnection
-    ADD FOREIGN KEY (arrivalStopId) REFERENCES stop (id);
+    ADD FOREIGN KEY (arrivalStopId) REFERENCES stop (id) on DELETE CASCADE;
 alter table tripConnection
-    ADD FOREIGN KEY (tripId) REFERENCES trip (id);
+    ADD FOREIGN KEY (tripId) REFERENCES trip (id) on DELETE CASCADE;

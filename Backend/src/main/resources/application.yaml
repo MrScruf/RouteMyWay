@@ -19,6 +19,11 @@ spring:
         physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
         implicit-strategy: org.hibernate.boot.model.naming.ImplicitNamingStrategyLegacyJpaImpl
       ddl-auto: none
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 200
+        order_updates: true
 parser:
   maxDurationFootPathsMinutes: 30
   generateFootPathsFromStops: true
