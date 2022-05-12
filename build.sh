@@ -1,5 +1,6 @@
 cd Frontend
 rm -rf build
+npm i
 npm run build
 cd ..
 rm -rf Backend/src/main/resources/static/*
