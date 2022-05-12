@@ -22,12 +22,13 @@ spring:
     properties:
       hibernate:
         jdbc:
-          batch_size: 200
-        order_updates: true
+          batch_size: 300
+#        order_updates: true
 parser:
-  maxDurationFootPathsMinutes: 30
+  maxDurationFootPathsMinutes: 15
   generateFootPathsFromStops: true
   distanceMultiplicatorConstant: 1.45
+  saveFullRelationsBetweenTripsAndServices: false
 logging:
   file:
     path: ./log

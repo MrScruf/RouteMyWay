@@ -1,10 +1,10 @@
-package net.krupizde.routeMyWay.Business
+package net.krupizde.routeMyWay.business
 
 import com.github.doyaaaaaken.kotlincsv.dsl.csvReader
 import kotlinx.coroutines.*
 import net.krupizde.routeMyWay.*
-import net.krupizde.routeMyWay.Utils.ThreadSemaphore
-import net.krupizde.routeMyWay.Utils.Utils
+import net.krupizde.routeMyWay.utils.ThreadSemaphore
+import net.krupizde.routeMyWay.utils.Utils
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
@@ -35,13 +35,16 @@ class Gtfs(
     private val threadSemaphore: ThreadSemaphore,
     @Value("\${parser.maxDurationFootPathsMinutes:30}") private val maxDurationFootPathsMinutes: Int,
     @Value("\${parser.distanceMultiplicatorConstant:1.5}") private val distanceMultiplicatorConstant: Double,
-    @Value("\${parser.generateFootPathsFromStops:false}") private val generateFootPathsFromStops: Boolean
+    @Value("\${parser.generateFootPathsFromStops:false}") private val generateFootPathsFromStops: Boolean,
+    @Value("\${parser.saveFullRelationsBetweenTripsAndServices:false}") private val saveFullRelations: Boolean
 ) {
     private val logger: Logger = LoggerFactory.getLogger(Gtfs::class.java)
 
 
     fun loadGtfsData(data: InputStream): Boolean {
-        if (!threadSemaphore.value.tryAcquire()) return false;
+        if (!threadSemaphore.value.tryAcquire()) {
+            return false
+        }
         try {
             load(data)
         } finally {
@@ -117,12 +120,15 @@ class Gtfs(
                 routes.getValue(it.routeId), index, serviceDaysByServiceId.getValue(it.serviceId).serviceIdInt
             )
         })
-        logger.info("Generating relations between trips and serviceDays")
-        val relations = savedTrips.flatMap { trip ->
-            serviceDaysByServiceIdInt[trip.serviceId]?.map { ServiceDayTripRel(trip.id, it) }?.asIterable() ?: listOf()
+        if (saveFullRelations) {
+            logger.info("Generating relations between trips and serviceDays")
+            val relations = savedTrips.flatMap { trip ->
+                serviceDaysByServiceIdInt[trip.serviceId]?.map { ServiceDayTripRel(trip.id, it) }?.asIterable()
+                    ?: listOf()
+            }
+            logger.info("Saving relations between trips and serviceDays")
+            serviceDayService.saveAllServiceDayTripRel(relations)
         }
-        logger.info("Saving relations between trips and serviceDays")
-        serviceDayService.saveAllServiceDayTripRel(relations)
 
         val tripsById = savedTrips.associateBy { it.tripId }
         logger.info("Saving trip connections")
@@ -134,8 +140,9 @@ class Gtfs(
         }
         tripConnectionsService.saveAll(tripConnections)
 
-        if (generateFootPathsFromStops)
+        if (generateFootPathsFromStops) {
             runBlocking { generateAllPathWays(stops.values.toList()) }
+        }
 
         logger.info("Saving foot connections")
         footTripConnectionsService.saveAll(pathWaysGtfs.map {
@@ -179,6 +186,7 @@ class Gtfs(
                 )
             }.asSequence().toList()
         }
+        //TODO upravit
         return out;
     }
 
@@ -192,11 +200,12 @@ class Gtfs(
                     val outPathWays = mutableListOf<FootPath>()
                     for (y in i until stops.size) {
                         var distanceInKm = distanceInKm(stops[i], stops[y])
-                        if (distanceInKm < 0) continue
                         distanceInKm *= distanceMultiplicatorConstant
                         val duration =
                             if (stops[i].stopId == stops[y].stopId) 0 else ceil((distanceInKm / 5) * 60).toInt()
-                        if (duration > maxDurationFootPathsMinutes) continue
+                        if (duration > maxDurationFootPathsMinutes || distanceInKm < 0) {
+                            continue
+                        }
                         outPathWays.add(FootPath(stops[i].id, stops[y].id, duration))
                     }
                     logger.debug("Finished generating from $i. Generated ${outPathWays.size} footConnections. Saving to DB")
@@ -213,7 +222,9 @@ class Gtfs(
     }
 
     fun distanceInKm(stop1: Stop, stop2: Stop): Double {
-        if (stop1.longitude == null || stop2.longitude == null || stop1.latitude == null || stop2.latitude == null) return -1.0
+        if (stop1.longitude == null || stop2.longitude == null || stop1.latitude == null || stop2.latitude == null) {
+            return -1.0
+        }
         val theta: Double = stop1.longitude - stop2.longitude
         var dist =
             sin(deg2rad(stop1.latitude)) * sin(deg2rad(stop2.latitude)) + cos(deg2rad(stop1.latitude)) * cos(
@@ -258,7 +269,9 @@ class Gtfs(
 
     private fun convertStopTimesToConnections(stopTimeGtfs: List<StopTimeGtfs>): List<TripConnectionGtfs> {
         logger.info("Converting GTFS stop times to connections")
-        if (stopTimeGtfs.isEmpty()) throw IllegalStateException("Stop times are empty")
+        if (stopTimeGtfs.isEmpty()) {
+            throw IllegalStateException("Stop times are empty")
+        }
         val sortedStopTimes = stopTimeGtfs.sortedWith(compareBy({ it.tripId }, { it.stopSequence }))
         var prevStopTime = sortedStopTimes[0]
         val tripConnections = mutableListOf<TripConnectionGtfs>()
@@ -342,13 +355,10 @@ class Gtfs(
         logger.info("Parsing GTFS stops.txt")
         val reader = zis.bufferedReader(charset = Charsets.UTF_8)
         val rows: List<Map<String, String>> = csvReader().readAllWithHeader(reader.readText())
-        val output = mutableListOf<StopGtfs>();
-        for (stop in rows) {
-            output.add(
-                StopGtfs(
-                    stop.getValue("stop_id"), stop["stop_name"], stop["parent_station"], stop["stop_lat"]?.toDouble(),
-                    stop["stop_lon"]?.toDouble(), stop["location_type"]?.toInt(), stop["wheelchair_boarding"]?.toInt()
-                )
+        val output = rows.map { stop ->
+            StopGtfs(
+                stop.getValue("stop_id"), stop["stop_name"], stop["parent_station"], stop["stop_lat"]?.toDouble(),
+                stop["stop_lon"]?.toDouble(), stop["location_type"]?.toInt(), stop["wheelchair_boarding"]?.toInt()
             )
         }
         logger.info("Finished parsing GTFS stops.txt")
@@ -359,15 +369,13 @@ class Gtfs(
         logger.info("Parsing GTFS calendar_dates.txt")
         val reader = zis.bufferedReader(charset = Charsets.UTF_8)
         val rows: List<Map<String, String>> = csvReader().readAllWithHeader(reader.readText())
-        val output = mutableListOf<CalendarDatesGtfs>();
-        for (calendarDate in rows) {
-            output.add(
-                CalendarDatesGtfs(
-                    calendarDate.getValue("service_id"),
-                    parseDate(calendarDate.getValue("date")),
-                    calendarDate.getValue("exception_type").toInt()
-                )
+        val output = rows.map { calendarDate ->
+            CalendarDatesGtfs(
+                calendarDate.getValue("service_id"),
+                parseDate(calendarDate.getValue("date")),
+                calendarDate.getValue("exception_type").toInt()
             )
+
         }
         logger.info("Finished parsing GTFS calendar_dates.txt")
         return output;
@@ -414,7 +422,9 @@ class Gtfs(
         val output = mutableSetOf<FootPathGtfs>();
         for (pathWay in rows) {
             val time = pathWay.getValue("traversal_time")
-            if (time.isBlank()) continue
+            if (time.isBlank()) {
+                continue
+            }
             output.add(
                 FootPathGtfs(
                     pathWay.getValue("from_stop_id"),

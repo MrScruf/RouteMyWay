@@ -1,6 +1,7 @@
-package net.krupizde.routeMyWay.Business
+package net.krupizde.routeMyWay.business
 
 import net.krupizde.routeMyWay.*
+import net.krupizde.routeMyWay.utils.Utils
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.config.ConfigurableBeanFactory
@@ -23,17 +24,35 @@ class DataProvider(
     var baseStops: Map<Int, StopBase> = mapOf()
     var baseTrips: Map<Int, TripBase> = mapOf()
     var serviceDays: Map<Int, Map<LocalDate, Boolean>> = mapOf()
+    private val delays: MutableMap<Int, MutableMap<LocalDate, Int>> = mutableMapOf()
 
     fun getTripConnectionsReversed(
         date: LocalDate,
         bikesAllowed: Boolean = false, wheelChairAccessible: Boolean = false, vehiclesAllowed: Set<Int>? = null
-    ) = filter(tripConnections.asReversed().asSequence(), date, bikesAllowed, wheelChairAccessible, vehiclesAllowed)
+    ) = addDelays(
+        filter(tripConnections.asReversed().asSequence(), date, bikesAllowed, wheelChairAccessible, vehiclesAllowed),
+        date
+    )
 
 
     fun getTripConnections(
         date: LocalDate,
         bikesAllowed: Boolean = false, wheelChairAccessible: Boolean = false, vehiclesAllowed: Set<Int>? = null
-    ) = filter(tripConnections.asSequence(), date, bikesAllowed, wheelChairAccessible, vehiclesAllowed)
+    ) = addDelays(filter(tripConnections.asSequence(), date, bikesAllowed, wheelChairAccessible, vehiclesAllowed), date)
+
+    private fun addDelays(sequence: Sequence<TripConnection>, date: LocalDate) =
+        sequence.map {
+            val delay = delays[it.tripId]
+            if (delay?.contains(date) == true) {
+                val delayTime = delay[date] ?: 0
+                it.copy(
+                    departureTimeDb = Utils.addMinutesToUintTimeReprezentation(it.departureTime, delayTime).toInt(),
+                    arrivalTimeDb = Utils.addMinutesToUintTimeReprezentation(it.arrivalTime, delayTime).toInt()
+                )
+            } else {
+                it
+            }
+        }
 
     private fun filter(
         sequence: Sequence<TripConnection>, date: LocalDate, bikesAllowed: Boolean, wheelChairAccessible: Boolean,
@@ -42,7 +61,7 @@ class DataProvider(
         (vehiclesAllowed == null || vehiclesAllowed.contains(baseTrips[it.tripId]?.routeTypeId)) &&
                 (!bikesAllowed || baseTrips[it.tripId]?.bikesAllowed == 1) &&
                 (!wheelChairAccessible || baseTrips[it.tripId]?.wheelChairAccessible == 1)
-    }.filter { serviceDays[baseTrips[it.tripId]?.serviceId]?.get(date) ?: true }
+    }.filter { serviceDays[baseTrips[it.tripId]?.serviceId]?.get(date) ?: false }
 
     @Synchronized
     fun reloadData() {
@@ -71,12 +90,31 @@ class DataProvider(
         baseStops = stopService.findAllBase().associateBy { it.id }
         logger.debug("Reloading trips")
         baseTrips = tripService.findAllBase().associateBy { it.id }
+        delays.clear()
         logger.info("Data cache reloaded")
         System.gc()
+    }
+
+    fun setDelay(tripId: String, date: LocalDate, durationMinutes: Int) {
+        val tripIdInt = tripService.findByTripId(tripId)?.id ?: error("Trip not found")
+        delays.getOrPut(tripIdInt) { mutableMapOf() }[date] = durationMinutes
+    }
+
+    fun clearDelay(tripId: String, date: LocalDate) {
+        val tripIdInt = tripService.findByTripId(tripId)?.id ?: error("Trip not found")
+        delays[tripIdInt]?.remove(date)
+        if (delays[tripIdInt]?.isEmpty() == true) delays.remove(tripIdInt)
+    }
+
+    fun clearOldDelays() {
+        delays.forEach { delay -> delay.value.entries.removeIf { it.key.isBefore(LocalDate.now()) } }
+        delays.entries.removeIf { it.value.isEmpty() }
     }
 
     fun reloadIfNotLoaded() {
         if (baseTrips.isNotEmpty()) return;
         reloadData()
     }
+
+
 }

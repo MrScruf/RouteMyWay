@@ -5,7 +5,6 @@ import org.springframework.data.domain.Example
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Service
 import javax.persistence.EntityManager
-import javax.persistence.FlushModeType
 import javax.persistence.PersistenceContext
 import javax.transaction.Transactional
 
@@ -62,7 +61,8 @@ class UtilService() {
         entityManager.createNativeQuery("truncate table footPath").executeUpdate()
     }
 
-    fun truncateServiceDayTripRel(){
+    @Transactional
+    fun truncateServiceDayTripRel() {
         entityManager.createNativeQuery("truncate table serviceDayTripRel").executeUpdate()
     }
 }
@@ -90,6 +90,10 @@ class StopService(val stopBaseRepository: StopBaseRepository) : GeneralService<S
 class TripService(val tripBaseRepository: TripBaseRepository) : GeneralService<Trip, Int, TripRepository>() {
     fun findAllBase(): List<TripBase> {
         return tripBaseRepository.findAll()
+    }
+
+    fun findByTripId(tripId: String): Trip? {
+        return repository.findByTripId(tripId)
     }
 }
 

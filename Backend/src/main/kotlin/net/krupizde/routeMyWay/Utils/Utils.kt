@@ -1,7 +1,7 @@
-package net.krupizde.routeMyWay.Utils
+package net.krupizde.routeMyWay.utils
 
 import net.krupizde.routeMyWay.Time
-import java.time.*
+import java.time.LocalTime
 import kotlin.math.floor
 
 class Utils {
@@ -27,7 +27,9 @@ class Utils {
         }
 
         fun addTransferToUintTimeReprezentation(time: UInt): UInt {
-            if (time == UInt.MAX_VALUE) return UInt.MAX_VALUE
+            if (time == UInt.MAX_VALUE) {
+                return UInt.MAX_VALUE
+            }
             return (time + 256u)
         }
 
@@ -39,7 +41,9 @@ class Utils {
         }
 
         fun addMinutesToUintTimeReprezentation(time: UInt, minutes: Int): UInt {
-            if (minutes == Int.MAX_VALUE || time == UInt.MAX_VALUE) return UInt.MAX_VALUE
+            if (minutes == Int.MAX_VALUE || time == UInt.MAX_VALUE) {
+                return UInt.MAX_VALUE
+            }
             return addSecondsToUintTimeReprezentation(time, minutes.toUInt() * 60u)
         }
 
@@ -55,9 +59,11 @@ class Utils {
         }
 
         fun extractSecondsOfDayFromUintTimeReprezentation(time: UInt): UInt {
-            if (time == UInt.MAX_VALUE) return time;
+            if (time == UInt.MAX_VALUE) {
+                return time
+            };
             val lowerBits = time and 255u
-            val higherBits = time shr  13 shl 8
+            val higherBits = time shr 13 shl 8
             return higherBits or lowerBits
         }
 

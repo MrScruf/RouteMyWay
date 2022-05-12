@@ -1,7 +1,6 @@
 package net.krupizde.routeMyWay
 
 import com.fasterxml.jackson.annotation.JsonIgnore
-import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.core.JsonGenerator
 import com.fasterxml.jackson.databind.SerializerProvider
 import com.fasterxml.jackson.databind.annotation.JsonSerialize
@@ -168,14 +167,20 @@ data class ParetoProfile(
     fun dominates(vector: StopProfile): Boolean {
         val fromIndex = profiles.indexOfFirst { it.departureTime >= vector.departureTime }
         for (profile in profiles.listIterator(fromIndex)) {
-            if (vector.arrivalTime < profile.arrivalTime) break;
-            if (profile.dominates(vector)) return true;
+            if (vector.arrivalTime < profile.arrivalTime) {
+                break
+            };
+            if (profile.dominates(vector)) {
+                return true
+            };
         }
         return false;
     }
 
     fun add(profile: StopProfile) {
-        if (dominates(profile)) return;
+        if (dominates(profile)) {
+            return
+        };
         val index = max(profiles.indexOfFirst { it.departureTime >= profile.departureTime }, 0)
         profiles.add(index, profile)
         profiles.subList(0, index).removeIf { profile.dominates(it) }

@@ -1,4 +1,4 @@
-package net.krupizde.routeMyWay.Persistence
+package net.krupizde.routeMyWay.persistence
 
 import net.krupizde.routeMyWay.*
 import org.springframework.data.domain.Pageable
@@ -14,7 +14,9 @@ interface StopJpaRepository : JpaRepository<Stop, Int> {
     fun findByName(name: String, pageable: Pageable): List<Stop>
 }
 
-interface TripJpaRepository : JpaRepository<Trip, Int>;
+interface TripJpaRepository : JpaRepository<Trip, Int> {
+    fun findByTripId(tripId: String): Trip?;
+}
 
 interface StopLightJpaRepository : JpaRepository<StopBase, Int>;
 

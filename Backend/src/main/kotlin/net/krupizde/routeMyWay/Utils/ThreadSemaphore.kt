@@ -1,4 +1,4 @@
-package net.krupizde.routeMyWay.Utils
+package net.krupizde.routeMyWay.utils
 
 import kotlinx.coroutines.sync.Semaphore
 import org.springframework.beans.factory.config.ConfigurableBeanFactory

@@ -1,5 +1,3 @@
-import SearchResult from "../Components/SearchResultView";
-
 
 export interface Stop {
   name: string;

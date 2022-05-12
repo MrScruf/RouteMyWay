@@ -1,6 +1,6 @@
 package net.krupizde.routeMyWay
 
-import net.krupizde.routeMyWay.Persistence.*
+import net.krupizde.routeMyWay.persistence.*
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.domain.Example
 import org.springframework.data.domain.PageRequest
@@ -63,7 +63,12 @@ class StopRepository() : GeneralRepository<Stop, Int, StopJpaRepository>() {
 }
 
 @Repository
-class TripRepository() : GeneralRepository<Trip, Int, TripJpaRepository>();
+class TripRepository() : GeneralRepository<Trip, Int, TripJpaRepository>() {
+    fun findByTripId(tripId: String): Trip? {
+        return jpaRepository.findByTripId(tripId)
+    }
+}
+
 @Repository
 class StopBaseRepository() : GeneralRepository<StopBase, Int, StopLightJpaRepository>();
 
@@ -73,6 +78,7 @@ class TripBaseRepository() : GeneralRepository<TripBase, Int, TripLightJpaReposi
         return jpaRepository.findAllMapping()
     }
 }
+
 @Repository
 class FootConnectionRepository() : GeneralRepository<FootPath, FootPathId, FootConnectionJpaRepository>();
 
