@@ -1,10 +1,9 @@
-package net.krupizde.routeMyWay.business
+package net.krupizde.routeMyWay.domain.gtfs
 
 import com.github.doyaaaaaken.kotlincsv.dsl.csvReader
 import kotlinx.coroutines.*
 import net.krupizde.routeMyWay.*
-import net.krupizde.routeMyWay.utils.ThreadSemaphore
-import net.krupizde.routeMyWay.utils.Utils
+import net.krupizde.routeMyWay.domain.connections.utils.CsaUtils
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
@@ -21,7 +20,7 @@ import kotlin.math.sin
 import kotlin.streams.asSequence
 
 @Service
-class Gtfs(
+class GtfsService(
     private val tripConnectionsService: TripConnectionsService,
     private val stopService: StopService,
     private val tripService: TripService,
@@ -32,13 +31,12 @@ class Gtfs(
     private val serviceDayService: ServiceDayService,
     private val dataProvider: DataProvider,
     private val utilService: UtilService,
-    private val threadSemaphore: ThreadSemaphore,
     @Value("\${parser.maxDurationFootPathsMinutes:30}") private val maxDurationFootPathsMinutes: Int,
     @Value("\${parser.distanceMultiplicatorConstant:1.5}") private val distanceMultiplicatorConstant: Double,
     @Value("\${parser.generateFootPathsFromStops:false}") private val generateFootPathsFromStops: Boolean,
     @Value("\${parser.saveFullRelationsBetweenTripsAndServices:false}") private val saveFullRelations: Boolean
 ) {
-    private val logger: Logger = LoggerFactory.getLogger(Gtfs::class.java)
+    private val logger: Logger = LoggerFactory.getLogger(GtfsService::class.java)
 
 
     fun loadGtfsData(data: InputStream): Boolean {
@@ -299,8 +297,8 @@ class Gtfs(
             output.add(
                 StopTimeGtfs(
                     stopTime.getValue("trip_id"),
-                    Utils.stringToUintTimeReprezentation(stopTime.getValue("arrival_time")),
-                    Utils.stringToUintTimeReprezentation(stopTime.getValue("departure_time")),
+                    CsaUtils.stringToUintTimeReprezentation(stopTime.getValue("arrival_time")),
+                    CsaUtils.stringToUintTimeReprezentation(stopTime.getValue("departure_time")),
                     stopTime.getValue("stop_id"),
                     stopTime.getValue("stop_sequence").toInt()
                 )

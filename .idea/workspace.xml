@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="8e2ad698-60ff-4793-87ae-ce9de3c86420" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/Backend/src/main/kotlin/net/krupizde/routeMyWay/domain/connections/obj/BasicStopProfile.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Backend/src/main/kotlin/net/krupizde/routeMyWay/domain/connections/obj/BasicStopProfileElement.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Backend/src/main/kotlin/net/krupizde/routeMyWay/domain/connections/obj/TripTimeConnectionPair.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Backend/src/main/kotlin/net/krupizde/routeMyWay/domain/connections/utils/CsaUtils.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/kotlin/net/krupizde/routeMyWay/Business/CSA.kt" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/kotlin/net/krupizde/routeMyWay/Business/CSA.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/kotlin/net/krupizde/routeMyWay/Business/DataProvider.kt" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/kotlin/net/krupizde/routeMyWay/Business/DataProvider.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/kotlin/net/krupizde/routeMyWay/Business/Gtfs.kt" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/kotlin/net/krupizde/routeMyWay/Business/Gtfs.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/kotlin/net/krupizde/routeMyWay/Persistence/Entities.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/kotlin/net/krupizde/routeMyWay/Persistence/JpaRepositories.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/kotlin/net/krupizde/routeMyWay/Persistence/Repositories.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/kotlin/net/krupizde/routeMyWay/Presentation/Controller.kt" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/kotlin/net/krupizde/routeMyWay/controller/connections/Controller.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/kotlin/net/krupizde/routeMyWay/Utils/StartupInitializer.kt" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/kotlin/net/krupizde/routeMyWay/StartupInitializer.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/kotlin/net/krupizde/routeMyWay/Utils/ThreadSemaphore.kt" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/kotlin/net/krupizde/routeMyWay/ThreadSemaphore.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/kotlin/net/krupizde/routeMyWay/Utils/Utils.kt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/resources/db/migration/V1__create.sql" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/resources/db/migration/V1__create.sql" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="ProjectId" id="2Nery7hhnKghUV012YtsfdFFhPf" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "WebServerToolWindowFactoryState": "false",
+    "nodejs_package_manager_path": "npm",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="8e2ad698-60ff-4793-87ae-ce9de3c86420" name="Changes" comment="" />
+      <created>1680035644279</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1680035644279</updated>
+      <workItem from="1680035645550" duration="26000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+</project>

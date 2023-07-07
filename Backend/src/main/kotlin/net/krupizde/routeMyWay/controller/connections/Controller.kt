@@ -1,13 +1,12 @@
-package net.krupizde.routeMyWay.presentation
+package net.krupizde.routeMyWay.controller.connections
 
 
 import net.krupizde.routeMyWay.RouteType
 import net.krupizde.routeMyWay.RouteTypeService
 import net.krupizde.routeMyWay.Stop
 import net.krupizde.routeMyWay.StopService
-import net.krupizde.routeMyWay.business.CSA
-import net.krupizde.routeMyWay.business.DataProvider
-import net.krupizde.routeMyWay.business.Gtfs
+import net.krupizde.routeMyWay.domain.connections.ConnectionsService
+import net.krupizde.routeMyWay.domain.gtfs.GtfsService
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -20,8 +19,8 @@ import javax.validation.constraints.NotBlank
 @RestController
 @RequestMapping("")
 class Controller(
-    private val gtfs: Gtfs,
-    private val csa: CSA,
+    private val gtfsService: GtfsService,
+    private val connectionsService: ConnectionsService,
     private val stopService: StopService,
     private val routeTypeService: RouteTypeService,
     private val dataProvider: DataProvider,
@@ -36,7 +35,7 @@ class Controller(
         if (password != updatePassword) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized")
         }
-        if (!gtfs.loadGtfsData(file.inputStream)) {
+        if (!gtfsService.loadGtfsData(file.inputStream)) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Already running")
         }
         return ResponseEntity.ok("Updated");
@@ -53,7 +52,7 @@ class Controller(
         @RequestParam(required = false) vehiclesAllowed: Set<Int>?
     ): ResponseEntity<*> {
         val time = if (departureTime != null) LocalDateTime.parse(departureTime) else LocalDateTime.now()
-        val out = csa.findShortestPathCSAProfile(
+        val out = connectionsService.findShortestPathCSAProfile(
             departureStopId, arrivalStopId, time, bikesAllowed, wheelChairsAllowed, vehiclesAllowed, numberOfPaths
         )
         return ResponseEntity.ok(out)

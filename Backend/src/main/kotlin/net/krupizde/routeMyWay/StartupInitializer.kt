@@ -1,6 +1,5 @@
-package net.krupizde.routeMyWay.utils
+package net.krupizde.routeMyWay
 
-import net.krupizde.routeMyWay.business.DataProvider
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.event.ContextRefreshedEvent
 import org.springframework.context.event.EventListener

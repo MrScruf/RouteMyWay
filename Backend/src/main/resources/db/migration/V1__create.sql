@@ -41,7 +41,6 @@ create table trip
     id                   integer not null primary key,
     tripId               varchar not null,
     routeId              integer not null,
-    serviceId            int     not null,
     tripHeadSign         varchar,
     tripShortName        varchar,
     wheelChairAccessible integer,
@@ -51,32 +50,25 @@ create table trip
 alter table trip
     add foreign key (routeId) references route (id);
 
-create table serviceDay
+create table calendar
 (
-    id           integer not null primary key,
-    serviceId    varchar not null,
-    serviceIdInt int     not null,
-    serviceDay   date,
-    willGo       boolean
+    service_id integer not null primary key,
+    monday     boolean not null,
+    tuesday    boolean not null,
+    wednesday  boolean not null,
+    thursday   boolean not null,
+    friday     boolean not null,
+    saturday   boolean not null,
+    sunday     boolean not null,
+    start_date date,
+    end_date   date
 );
 
-create table serviceDayTripRel
+create table footConnection
 (
-    serviceDayId integer not null,
-    tripId       integer not null,
-    primary key (serviceDayId, tripId)
-);
-
-alter table serviceDayTripRel
-    add foreign key (serviceDayId) references serviceDay (id) on DELETE CASCADE ;
-alter table serviceDayTripRel
-    add foreign key (tripId) references trip (id) on DELETE CASCADE;
-
-create table footPath
-(
-    departureStopId integer not null,
-    arrivalStopId   integer not null,
-    duration        integer not null,
+    departureStopId   integer not null,
+    arrivalStopId     integer not null,
+    durationInSeconds integer not null,
     PRIMARY KEY (departureStopId, arrivalStopId)
 );
 
